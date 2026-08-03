@@ -2,7 +2,7 @@
 
 # Universal Player
 
-**Universal Player — a custom player extension for multiple online video platforms**
+**Universal Player — a custom player extension for multiple online video platforms (Please check the Firefox branch for the Firefox version.)**
 
 [![Version](https://img.shields.io/badge/version-1.0.0-2ea44f.svg)](#)
 [![Manifest](https://img.shields.io/badge/Chrome-Manifest%20V3-4285F4.svg)](#)
@@ -26,13 +26,13 @@ Replaces the native player on supported sites with a unified custom playback UI,
 The current version can detect and replace playback pages on:
 
 
-| Platform       | Supported scope                         | URL example or pattern                                                     |
-| -------------- | --------------------------------------- | -------------------------------------------------------------------------- |
-| Tencent Video  | Standard episode playback pages         | `https://v.qq.com/x/cover/<cover-id>/<video-id>.html`                      |
-| iQIYI          | Standard video playback pages           | `https://www.iqiyi.com/v_<video-id>.html`                                  |
-| Mango TV       | Program playback pages                  | `https://www.mgtv.com/b/<program-id>/<video-id>.html`                      |
-| Youku          | Standard video playback pages           | `https://v.youku.com/v_show/id_<video-id>.html`                            |
-| Bilibili       | Anime season and episode pages          | `https://www.bilibili.com/bangumi/play/ss<number>` or `ep<number>`         |
+| Platform      | Supported scope                 | URL example or pattern                                             |
+| ------------- | ------------------------------- | ------------------------------------------------------------------ |
+| Tencent Video | Standard episode playback pages | `https://v.qq.com/x/cover/<cover-id>/<video-id>.html`              |
+| iQIYI         | Standard video playback pages   | `https://www.iqiyi.com/v_<video-id>.html`                          |
+| Mango TV      | Program playback pages          | `https://www.mgtv.com/b/<program-id>/<video-id>.html`              |
+| Youku         | Standard video playback pages   | `https://v.youku.com/v_show/id_<video-id>.html`                    |
+| Bilibili      | Anime season and episode pages  | `https://www.bilibili.com/bangumi/play/ss<number>` or `ep<number>` |
 
 The extension selects the matching site adapter from the current URL, then mounts the shared `player/index.html` player into the original player area. On sites that frequently rebuild player DOM, it uses a dedicated overlay and continuously tracks player size and position.
 
@@ -258,11 +258,11 @@ The following data may be stored in the browser’s `chrome.storage.local`:
 To support media resolve, danmaku, and history metadata features, the extension sends requests to third-party services, including but not limited to:
 
 
-| Service                | Data sent or requested                                                              | Purpose                                                                                      |
-| ---------------------- | ----------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `data.video.iqiyi.com` | Time request                                                                        | Obtain the time value needed to build resolve requests.                                      |
-| `cache.0567890.xyz`    | Encoded current video page URL and signature parameters                             | Obtain media URLs and video info.                                                            |
-| `dmku.hls.one`         | Normalized video URL, danmaku ID, danmaku text, time, color, and font size          | Fetch platform/independent danmaku, title or episode info, and send independent danmaku.     |
+| Service                | Data sent or requested                                                     | Purpose                                                                                  |
+| ---------------------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `data.video.iqiyi.com` | Time request                                                               | Obtain the time value needed to build resolve requests.                                  |
+| `cache.0567890.xyz`    | Encoded current video page URL and signature parameters                    | Obtain media URLs and video info.                                                        |
+| `dmku.hls.one`         | Normalized video URL, danmaku ID, danmaku text, time, color, and font size | Fetch platform/independent danmaku, title or episode info, and send independent danmaku. |
 
 Some requests set `credentials: "omit"` and do not intentionally send third-party cookies, but service providers may still log IP addresses, request times, User-Agent, or other ordinary server logs according to their own policies.
 
