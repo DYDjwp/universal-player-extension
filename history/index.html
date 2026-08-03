@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="black" data-i18n-title="history.documentTitle">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>通用播放器观看历史</title>
+  <link rel="stylesheet" href="history.css">
+</head>
+<body>
+  <main class="history-shell">
+    <header class="history-header">
+      <div>
+        <p class="eyebrow" data-i18n="app.brand">UNIVERSAL PLAYER</p>
+        <h1 data-i18n="history.heading">观看历史</h1>
+        <p id="summary" class="summary" data-i18n="history.summaryLoading">正在读取记录…</p>
+      </div>
+      <div class="header-actions">
+        <span id="storageBadge" class="storage-badge" data-i18n="history.storageReading">读取中</span>
+        <button id="clearAllButton" class="clear-all" type="button" data-i18n="history.clearAll">删除全部历史</button>
+      </div>
+    </header>
+    <p id="storageWarning" class="storage-warning" hidden></p>
+    <section id="historyList" class="history-list" aria-live="polite"></section>
+  </main>
+  <script src="../theme/theme.js"></script>
+  <script src="../language/i18n.js"></script>
+  <script src="history.js"></script>
+</body>
+</html>

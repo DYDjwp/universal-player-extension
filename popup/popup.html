@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="black" data-i18n-title="popup.documentTitle">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>通用播放器</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <main class="panel">
+    <header class="header">
+      <div>
+        <p class="eyebrow" data-i18n="app.brand">UNIVERSAL PLAYER</p>
+        <h1 data-i18n="popup.heading">通用播放器</h1>
+      </div>
+      <span class="version" data-i18n="app.version">v1.0.0</span>
+    </header>
+
+    <section class="site-card">
+      <span class="label" data-i18n="popup.currentSite">当前网站</span>
+      <strong id="site-name" data-i18n="popup.checkingSite">正在识别…</strong>
+      <span id="page-url" class="page-url"></span>
+    </section>
+
+    <section id="status-box" class="status-box status-loading" aria-live="polite">
+      <span class="status-dot" aria-hidden="true"></span>
+      <div>
+        <strong id="status-title" data-i18n="popup.statusChecking">正在检查当前网页</strong>
+        <p id="status-detail" data-i18n="popup.statusPleaseWait">请稍候</p>
+      </div>
+    </section>
+
+    <button id="action-button" class="action-button" type="button" disabled data-i18n="popup.startReplace">
+      开始替换
+    </button>
+
+    <button id="interval-button" class="interval-button" type="button" data-i18n="popup.openSettings">
+      打开设置
+    </button>
+
+    <p class="footnote" data-i18n="popup.footnote">
+     实际显示内容统一来自 player/index.html。
+    </p>
+  </main>
+  
+  <script src="../theme/theme.js"></script>
+  <script src="../language/i18n.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

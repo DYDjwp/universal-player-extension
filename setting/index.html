@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="black" data-i18n-title="settings.documentTitle">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>通用播放器设置</title>
+  <link rel="stylesheet" href="setting.css">
+</head>
+<body>
+  <main class="settings-shell">
+    <header class="hero">
+      <div>
+        <p class="eyebrow" data-i18n="app.brand">UNIVERSAL PLAYER</p>
+        <h1 data-i18n="settings.heading">播放器设置</h1>
+        <p class="subtitle" data-i18n="settings.subtitle">管理自动替换、自动换集、观看历史和本地存储。</p>
+      </div>
+      <span class="version" data-i18n="app.version">v1.0.0</span>
+    </header>
+
+    <section class="settings-card">
+      <div class="section-heading">
+        <div>
+          <h2 data-i18n="settings.playbackBehavior">播放行为</h2>
+          <p data-i18n="settings.playbackBehaviorDesc">这些设置会立即保存，并应用到之后打开的播放页面。</p>
+        </div>
+      </div>
+
+      <label class="setting-row" for="autoReplace">
+        <span>
+          <strong data-i18n="settings.autoReplace">自动替换播放器</strong>
+          <small data-i18n="settings.autoReplaceDesc">打开受支持的视频页面后，自动挂载通用播放器。</small>
+        </span>
+        <input type="checkbox" id="autoReplace">
+        <span class="switch" aria-hidden="true"></span>
+      </label>
+
+      <label class="setting-row" for="autoChange">
+        <span>
+          <strong data-i18n="settings.autoChange">自动切换视频</strong>
+          <small data-i18n="settings.autoChangeDesc">在同一标签页切换集数或视频时，自动重新加载当前地址。</small>
+        </span>
+        <input type="checkbox" id="autoChange">
+        <span class="switch" aria-hidden="true"></span>
+      </label>
+
+      <label class="setting-row" for="historyEnabled">
+        <span>
+          <strong data-i18n="settings.historyEnabled">保留观看历史</strong>
+          <small data-i18n="settings.historyEnabledDesc">按视频 URL 保存进度、封面、剧名和集数；关闭后不会继续新增或更新记录。</small>
+        </span>
+        <input type="checkbox" id="historyEnabled">
+        <span class="switch" aria-hidden="true"></span>
+      </label>
+    </section>
+
+    <section class="settings-card">
+      <div class="section-heading">
+        <div>
+          <h2 data-i18n="settings.appearance">外观</h2>
+          <p data-i18n="settings.appearanceDesc">切换界面语言，以及纯黑 / 纯白配色。</p>
+        </div>
+      </div>
+
+      <div class="setting-row choice-row">
+        <span>
+          <strong data-i18n="settings.language">界面语言</strong>
+          <small data-i18n="settings.languageDesc">切换设置页、弹窗和历史页的显示语言。</small>
+        </span>
+        <div id="languageSwitch" class="choice-switch" role="group" data-i18n="settings.language" data-i18n-attr="aria-label">
+          <button type="button" class="choice-option language-option" data-lang="zh-CN" data-i18n="settings.language.zh">中文</button>
+          <button type="button" class="choice-option language-option" data-lang="en" data-i18n="settings.language.en">English</button>
+        </div>
+      </div>
+
+      <div class="setting-row choice-row">
+        <span>
+          <strong data-i18n="settings.theme">配色</strong>
+          <small data-i18n="settings.themeDesc">在纯黑与纯白两种配色之间切换。</small>
+        </span>
+        <div id="themeSwitch" class="choice-switch" role="group" data-i18n="settings.theme" data-i18n-attr="aria-label">
+          <button type="button" class="choice-option theme-option" data-theme="black" data-i18n="settings.theme.black">纯黑</button>
+          <button type="button" class="choice-option theme-option" data-theme="white" data-i18n="settings.theme.white">纯白</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="settings-card">
+      <div class="section-heading storage-heading">
+        <div>
+          <h2 data-i18n="settings.storageHeading">历史与存储</h2>
+          <p id="storageText" data-i18n="settings.storageLoading">正在计算扩展存储使用量…</p>
+        </div>
+        <span id="storageBadge" class="storage-badge" data-i18n="settings.storageReading">读取中</span>
+      </div>
+      <div class="storage-track" aria-hidden="true">
+        <span id="storageBar"></span>
+      </div>
+      <p id="storageWarning" class="storage-warning" hidden></p>
+
+      <div class="button-grid">
+        <button id="openHistoryButton" class="primary-button" type="button" data-i18n="settings.openHistory">查看观看历史</button>
+        <button id="clearStorageButton" class="danger-button" type="button" data-i18n="settings.clearStorage">重置全部扩展数据</button>
+      </div>
+      <p class="hint" data-i18n="settings.clearHint">“重置全部扩展数据”会同时删除设置、观看历史和播放器替换状态。</p>
+    </section>
+  </main>
+  <script src="../theme/theme.js"></script>
+  <script src="../language/i18n.js"></script>
+  <script src="setting.js"></script>
+</body>
+</html>

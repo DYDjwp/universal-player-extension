@@ -1,0 +1,65 @@
+{
+  "manifest_version": 3,
+  "name": "universal player",
+  "version": "1.0.0",
+  "description": "支持多平台播放页替换；使用本地 Media Chrome 自定义控制栏，集成平台弹幕、独立弹幕发送、HLS 解包、倍速和观看历史。",
+  "icons": {
+    "128": "assets/icon/icon.png"
+  },
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "declarativeNetRequest",
+    "declarativeNetRequestFeedback",
+    "storage",
+    "tabs"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "host_permissions": [
+    "https://*/*"
+  ],
+  "action": {
+    "default_title": "Universal Player",
+    "default_popup": "popup/popup.html"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "setting/setting.js",
+        "setting/index.html",
+        "player/index.html",
+        "player/player.css",
+        "player/hls-decoder.js",
+        "player/danmaku.js",
+        "player/player.js",
+        "player/libs/*",
+        "player/assets/*",
+        "setting/setting.css",
+        "history/index.html",
+        "history/history.css",
+        "history/history.js",
+        "language/*",
+        "theme/*"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "intercept-console-clear.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN",
+      "all_frames": false
+    }
+  ],
+  "options_page": "setting/index.html"
+}
