@@ -28,6 +28,10 @@
   const FORBIDDEN_IP_MESSAGE =
     "当前端口不支持该ip，请切换网络或开启国内vpn后再试";
 
+  const HLS_LIBRARY_MISSING_MESSAGE =
+    "Firefox 播放标准 HLS 需要本地 hls.js。请运行 tools/download-hls.cmd，" +
+    "或将 hls.min.js 放到 player/libs/hls.min.js 后重新加载扩展。";
+
   function getErrorStatus(error) {
     let current = error;
     const visited = new Set();
@@ -447,7 +451,7 @@
 
   async function ensureMediaChromeReady(timeoutMs = 4000) {
     if (!globalThis.customElements) {
-      throw new Error("当前浏览器不支持 Web Components，无法加载 Media Chrome");
+      throw new Error("当前浏览器不支持 Web Components，无法加载 Media browser");
     }
 
     const waitForDefinitions = Promise.all(
@@ -461,8 +465,8 @@
           tagName => !customElements.get(tagName)
         );
         reject(new Error(
-          `Media Chrome 未安装或加载失败：${missing.join(", ") || "组件注册超时"}。` +
-          "请运行扩展根目录中的 install-media-chrome.cmd，然后重新加载扩展。"
+          `Media browser 未安装或加载失败：${missing.join(", ") || "组件注册超时"}。` +
+          "请运行扩展根目录中的 install-media-browser.cmd，然后重新加载扩展。"
         ));
       }, timeoutMs);
     });
@@ -780,7 +784,7 @@
     controlsShell.append(timeline, controlBar);
     container.append(videoRegion, controlsShell);
 
-    // Media Chrome resolves the `fullscreenelement` attribute while the
+    // Media browser resolves the `fullscreenelement` attribute while the
     // controller is still detached. At that point it cannot find the outer
     // container, so it silently falls back to fullscreening only the inner
     // media-controller. The custom controls are siblings of that element and
@@ -896,7 +900,7 @@
       lastPersistedRate = rate;
 
       try {
-        await chrome.storage.local.set({ [PLAYBACK_RATE_KEY]: rate });
+        await browser.storage.local.set({ [PLAYBACK_RATE_KEY]: rate });
       } catch (error) {
         console.warn("[Universal Player] 保存倍速设置失败：", error);
       }
@@ -955,7 +959,7 @@
     document.addEventListener("keydown", handleDocumentKeyDown);
 
     try {
-      const stored = await chrome.storage.local.get({ [PLAYBACK_RATE_KEY]: 1 });
+      const stored = await browser.storage.local.get({ [PLAYBACK_RATE_KEY]: 1 });
       const savedRate = normalizePlaybackRate(stored[PLAYBACK_RATE_KEY]);
       lastPersistedRate = savedRate;
       updateRate(savedRate);
@@ -1091,12 +1095,16 @@
 
   function attachVideoStatusEvents(video, playbackState) {
     video.addEventListener("loadedmetadata", () => {
+      const isMsePlayback = [
+        "hls-js",
+        "preparing-hls-js",
+        "mse-decoded-hls",
+        "preparing-mse-hls"
+      ].includes(playbackState.mode);
+
       setStatus(
-        (
-          playbackState.mode === "mse-decoded-hls" ||
-          playbackState.mode === "preparing-mse-hls"
-        )
-          ? "MSE 解包已启动，视频元数据已加载"
+        isMsePlayback
+          ? "MSE 播放已启动，视频元数据已加载"
           : "视频地址已加载",
         "ready"
       );
@@ -1134,6 +1142,140 @@
     });
   }
 
+  function looksLikeHlsUrl(url) {
+    try {
+      const parsed = new URL(url);
+      return /\.m3u8(?:$|[?#])/i.test(parsed.href);
+    } catch {
+      return /\.m3u8(?:$|[?#])/i.test(String(url));
+    }
+  }
+
+  async function createHlsJsPlayback(video, sourceUrl, options = {}) {
+    const HlsConstructor = globalThis.Hls;
+
+    if (typeof HlsConstructor !== "function") {
+      throw new Error(HLS_LIBRARY_MISSING_MESSAGE);
+    }
+
+    if (!HlsConstructor.isSupported()) {
+      throw new Error(
+        "当前 Firefox 环境不支持 hls.js 所需的 Media Source Extensions"
+      );
+    }
+
+    const hls = new HlsConstructor({
+      // Firefox 扩展页面的 CSP 可能阻止 blob Worker，关闭 Worker 更稳妥。
+      enableWorker: false,
+      lowLatencyMode: true,
+      backBufferLength: 60,
+      maxBufferLength: 45,
+      maxMaxBufferLength: 90,
+      manifestLoadingMaxRetry: 4,
+      levelLoadingMaxRetry: 4,
+      fragLoadingMaxRetry: 4
+    });
+
+    let destroyed = false;
+    let networkRecoveries = 0;
+    let mediaRecoveries = 0;
+
+    const destroy = () => {
+      if (destroyed) {
+        return;
+      }
+
+      destroyed = true;
+      hls.destroy();
+    };
+
+    const ready = new Promise((resolve, reject) => {
+      const rejectPlayback = error => {
+        destroy();
+        reject(error instanceof Error ? error : new Error(String(error)));
+      };
+
+      hls.on(HlsConstructor.Events.MEDIA_ATTACHED, () => {
+        options.onStatus?.("hls.js 已连接播放器，正在加载播放列表……");
+        hls.loadSource(sourceUrl);
+      });
+
+      hls.on(HlsConstructor.Events.MANIFEST_PARSED, (_event, data) => {
+        options.onStatus?.(
+          `hls.js 已解析播放列表（${data?.levels?.length || 1} 个清晰度）`
+        );
+        resolve();
+      });
+
+      hls.on(HlsConstructor.Events.ERROR, (_event, data) => {
+        const summary = [
+          data?.type,
+          data?.details,
+          Number.isFinite(data?.response?.code)
+            ? `HTTP ${data.response.code}`
+            : null
+        ].filter(Boolean).join(" / ");
+
+        if (!data?.fatal) {
+          console.debug("[Universal Player] hls.js 非致命错误：", data);
+          return;
+        }
+
+        if (
+          data.type === HlsConstructor.ErrorTypes.NETWORK_ERROR &&
+          networkRecoveries < 2
+        ) {
+          networkRecoveries += 1;
+          options.onStatus?.(
+            `HLS 网络错误，正在恢复（${networkRecoveries}/2）……`
+          );
+          hls.startLoad();
+          return;
+        }
+
+        if (
+          data.type === HlsConstructor.ErrorTypes.MEDIA_ERROR &&
+          mediaRecoveries < 2
+        ) {
+          mediaRecoveries += 1;
+          options.onStatus?.(
+            `HLS 媒体错误，正在恢复（${mediaRecoveries}/2）……`
+          );
+          hls.recoverMediaError();
+          return;
+        }
+
+        const error = new Error(
+          `hls.js 播放失败${summary ? `：${summary}` : ""}`
+        );
+
+        const status = Number(data?.response?.code);
+        if (Number.isFinite(status)) {
+          error.httpStatus = status;
+        }
+
+        options.onError?.(error, data);
+        rejectPlayback(error);
+      });
+
+      hls.attachMedia(video);
+    });
+
+    try {
+      await ready;
+    } catch (error) {
+      destroy();
+      throw error;
+    }
+
+    return {
+      mode: "hls-js",
+      hls,
+      destroy,
+      revoke: destroy
+    };
+  }
+
   async function selectPlaybackSource(video, videoUrl, playbackState) {
     if (!globalThis.NativeHlsDecoder) {
       throw new Error("HLS 检测与解包模块没有加载");
@@ -1165,9 +1307,36 @@
       }
 
       console.warn(
-        "媒体预检失败，将交给浏览器直接尝试：",
+        "媒体预检失败：",
         error
       );
+
+      if (looksLikeHlsUrl(videoUrl)) {
+        playbackState.mode = "preparing-hls-js";
+        setStatus(
+          "媒体预检失败，但地址看起来是 HLS，正在使用 hls.js……",
+          "loading"
+        );
+
+        const prepared = await createHlsJsPlayback(video, videoUrl, {
+          onStatus(message) {
+            setStatus(message, "loading");
+          },
+          onError(hlsError) {
+            setStatus(
+              isForbiddenError(hlsError)
+                ? FORBIDDEN_IP_MESSAGE
+                : getDisplayErrorMessage(hlsError),
+              "error",
+              hlsError
+            );
+          }
+        });
+
+        playbackState.prepared = prepared;
+        playbackState.mode = "hls-js";
+        return null;
+      }
 
       playbackState.mode = "native-fallback";
       setStatus(
@@ -1194,12 +1363,37 @@
     });
 
     if (!analysis.requiresUnwrap) {
-      playbackState.mode = "native-hls";
+      playbackState.mode = "preparing-hls-js";
       setStatus(
-        `检测为标准 HLS（${analysis.inspection.kind}），使用浏览器直接播放……`,
+        `检测为标准 HLS（${analysis.inspection.kind}），正在使用 hls.js……`,
         "loading"
       );
-      return videoUrl;
+
+      const hlsSourceUrl =
+        analysis.rootPlaylist?.url ||
+        analysis.mediaPlaylist?.url ||
+        videoUrl;
+
+      const prepared = await createHlsJsPlayback(video, hlsSourceUrl, {
+        onStatus(message) {
+          setStatus(message, "loading");
+        },
+        onError(error) {
+          setStatus(
+            isForbiddenError(error)
+              ? FORBIDDEN_IP_MESSAGE
+              : getDisplayErrorMessage(error),
+            "error",
+            error
+          );
+        }
+      });
+
+      playbackState.prepared = prepared;
+      playbackState.mode = "hls-js";
+
+      // hls.js 已绑定 MediaSource；不要再覆盖 video.src。
+      return null;
     }
 
     playbackState.mode = "preparing-mse-hls";
@@ -1275,7 +1469,7 @@
 
   function sendHistoryMessageOnce(message, timeoutMs = 4500) {
     return new Promise((resolve, reject) => {
-      if (!globalThis.chrome?.runtime?.sendMessage) {
+      if (!globalThis.browser?.runtime?.sendMessage) {
         reject(new Error("扩展消息接口不可用"));
         return;
       }
@@ -1298,8 +1492,8 @@
       const rejectOnce = finish(reject);
 
       try {
-        chrome.runtime.sendMessage(message, response => {
-          const runtimeError = chrome.runtime.lastError;
+        browser.runtime.sendMessage(message, response => {
+          const runtimeError = browser.runtime.lastError;
 
           if (runtimeError) {
             rejectOnce(new Error(runtimeError.message || "扩展后台通信失败"));
@@ -1430,7 +1624,7 @@
   }
 
   async function setupWatchHistory(video, videoInfo) {
-    const settings = await chrome.storage.local.get({ historyEnabled: true });
+    const settings = await browser.storage.local.get({ historyEnabled: true });
     let enabled = settings.historyEnabled !== false;
     const canonicalUrl = canonicalizeWatchUrl(sourceUrl);
     let catalogMetadata = null;
@@ -1516,7 +1710,7 @@
     });
     window.addEventListener("pagehide", () => { void save(true, video.ended); });
 
-    chrome.storage.onChanged.addListener((changes, areaName) => {
+    browser.storage.onChanged.addListener((changes, areaName) => {
       if (areaName === "local" && changes.historyEnabled) {
         enabled = changes.historyEnabled.newValue !== false;
       }
@@ -1671,7 +1865,7 @@
     window.addEventListener("pagehide", cleanup, { once: true });
 
     globalThis.UniversalPlayer = Object.freeze({
-      version: "1.0.0",
+      version: "1.0.1",
       app,
       siteId,
       sourceUrl,

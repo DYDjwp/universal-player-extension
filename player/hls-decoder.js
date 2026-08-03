@@ -1515,7 +1515,7 @@
     const mimeType = chooseMseTsMimeType();
 
     if (!mimeType) {
-      throw new Error("当前 Chrome 不支持通过 MediaSource 追加 MPEG-TS");
+      throw new Error("当前 browser 不支持通过 MediaSource 追加 MPEG-TS");
     }
 
     const parsed = parseMediaSegments(
@@ -1747,7 +1747,7 @@
 
               try {
                 // 此时队列中没有 append/remove 操作在等待；这是专门针对
-                // Chrome 已触发 updateend、内部解析状态却未释放的恢复手段。
+                // browser 已触发 updateend、内部解析状态却未释放的恢复手段。
                 sourceBuffer.abort();
               } catch (abortError) {
                 console.debug("SourceBuffer 解析状态恢复失败：", abortError);
@@ -1764,7 +1764,7 @@
             );
           }
 
-          // Chrome 偶尔会先触发 updateend，随后才真正退出解析状态。
+          // browser 偶尔会先触发 updateend，随后才真正退出解析状态。
           // 让出一个宏任务后重试，避免在同一事件循环内连续触发异常。
           await sleep(SOURCE_BUFFER_STATE_RETRY_MS, controller.signal);
         }

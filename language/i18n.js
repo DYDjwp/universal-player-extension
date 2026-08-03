@@ -57,7 +57,7 @@
 
   async function loadLanguage(lang) {
     const code = normalizeLang(lang);
-    const url = chrome.runtime.getURL(`language/${code}.json`);
+    const url = browser.runtime.getURL(`language/${code}.json`);
     const response = await fetch(url, { cache: "no-store" });
     if (!response.ok) {
       throw new Error(`Failed to load language pack: ${code}`);
@@ -93,7 +93,7 @@
   }
 
   async function getStoredLanguage() {
-    const result = await chrome.storage.local.get({ [STORAGE_KEY]: DEFAULT_LANG });
+    const result = await browser.storage.local.get({ [STORAGE_KEY]: DEFAULT_LANG });
     return normalizeLang(result[STORAGE_KEY]);
   }
 
@@ -106,7 +106,7 @@
 
   async function setLanguage(lang) {
     const code = normalizeLang(lang);
-    await chrome.storage.local.set({ [STORAGE_KEY]: code });
+    await browser.storage.local.set({ [STORAGE_KEY]: code });
     await loadLanguage(code);
     applyTranslations();
     return currentLang;

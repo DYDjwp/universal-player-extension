@@ -71,7 +71,7 @@
    * 所有页面信息都从 background.js 获取。
    */
   async function requestCurrentPageInfo() {
-    return chrome.runtime.sendMessage({
+    return browser.runtime.sendMessage({
       type:
         MESSAGE_TYPES.GET_CURRENT_PAGE
     });
@@ -81,7 +81,7 @@
    * 请求 background.js 调用 initialization()。
    */
   async function requestPlayerInitialization() {
-    return chrome.runtime.sendMessage({
+    return browser.runtime.sendMessage({
       type:
         MESSAGE_TYPES.INITIALIZE_PLAYER
     });
@@ -326,7 +326,7 @@
     }
   }
 
-  chrome.runtime.onMessage.addListener(
+  browser.runtime.onMessage.addListener(
     message => {
       if (
         message?.type !==
@@ -358,8 +358,8 @@
   ui.intervalButton.addEventListener(
     "click",
     () => {
-      chrome.tabs.create({
-        url: chrome.runtime.getURL(
+      browser.tabs.create({
+        url: browser.runtime.getURL(
           "setting/index.html"
         )
       });

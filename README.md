@@ -5,7 +5,7 @@
 **Universal Player — a custom player extension for multiple online video platforms**
 
 [![Version](https://img.shields.io/badge/version-1.0.0-2ea44f.svg)](#)
-[![Manifest](https://img.shields.io/badge/Chrome-Manifest%20V3-4285F4.svg)](#)
+[![Browser](https://img.shields.io/badge/Firefox-Manifest%20V3-FF7139.svg)](#)
 [![License](https://img.shields.io/badge/license-GPL--3.0--or--later-blue.svg)](LICENSE)
 
 **English** | [中文](README.zh.md)
@@ -26,13 +26,13 @@ Replaces the native player on supported sites with a unified custom playback UI,
 The current version can detect and replace playback pages on:
 
 
-| Platform       | Supported scope                         | URL example or pattern                                                     |
-| -------------- | --------------------------------------- | -------------------------------------------------------------------------- |
-| Tencent Video  | Standard episode playback pages         | `https://v.qq.com/x/cover/<cover-id>/<video-id>.html`                      |
-| iQIYI          | Standard video playback pages           | `https://www.iqiyi.com/v_<video-id>.html`                                  |
-| Mango TV       | Program playback pages                  | `https://www.mgtv.com/b/<program-id>/<video-id>.html`                      |
-| Youku          | Standard video playback pages           | `https://v.youku.com/v_show/id_<video-id>.html`                            |
-| Bilibili       | Anime season and episode pages          | `https://www.bilibili.com/bangumi/play/ss<number>` or `ep<number>`         |
+| Platform      | Supported scope                 | URL example or pattern                                             |
+| ------------- | ------------------------------- | ------------------------------------------------------------------ |
+| Tencent Video | Standard episode playback pages | `https://v.qq.com/x/cover/<cover-id>/<video-id>.html`              |
+| iQIYI         | Standard video playback pages   | `https://www.iqiyi.com/v_<video-id>.html`                          |
+| Mango TV      | Program playback pages          | `https://www.mgtv.com/b/<program-id>/<video-id>.html`              |
+| Youku         | Standard video playback pages   | `https://v.youku.com/v_show/id_<video-id>.html`                    |
+| Bilibili      | Anime season and episode pages  | `https://www.bilibili.com/bangumi/play/ss<number>` or `ep<number>` |
 
 The extension selects the matching site adapter from the current URL, then mounts the shared `player/index.html` player into the original player area. On sites that frequently rebuild player DOM, it uses a dedicated overlay and continuously tracks player size and position.
 
@@ -70,7 +70,7 @@ Main capabilities:
 * Adjust opacity, font size, move speed, display area, and on-screen limit.
 * Customize color and font size when sending independent danmaku.
 * Danmaku request failures do not block video playback.
-* Danmaku settings are stored in `chrome.storage.local`.
+* Danmaku settings are stored in `browser.storage.local`.
 
 ### Watch history and resume
 
@@ -90,7 +90,7 @@ Main capabilities:
 The player analyzes media URLs returned by resolve APIs and chooses a playback mode by content type:
 
 * Normal media URLs: played by the browser native media element.
-* Standard HLS: handled by the browser; compatibility depends on the browser and media format.
+* Standard HLS: played through the bundled-local `hls.js` integration on Firefox; the browser is no longer asked to play `.m3u8` directly.
 * PNG-wrapped HLS: detects MPEG-TS media appended after PNG data, then downloads, unpacks, and plays via Media Source Extensions.
 
 The streaming unpack module includes:
@@ -131,23 +131,18 @@ The settings page currently provides:
 
 ## Installation
 
-This project currently needs no npm, build tools, or extra install steps. The HTML, CSS, JavaScript, and third-party browser files required at runtime are already included in the extension directory.
+No npm or build step is required. Before loading the Firefox extension, download the local hls.js runtime by running `tools/download-hls.cmd`, or manually place `hls.min.js` at `player/libs/hls.min.js`.
 
 ### Install from source
 
 1. Download and extract this repository.
-2. Open Chrome, Edge, or another Chromium-based browser.
-3. Go to:
-
-   * Chrome: `chrome://extensions/`
-   * Edge: `edge://extensions/`
-4. Enable **Developer mode** in the top-right corner.
-5. Click **Load unpacked**.
-6. Select the project root that contains `manifest.json`.
-7. Pin **Universal Player** to the toolbar for easy access.
+2. Open Firefox and go to `about:debugging#/runtime/this-firefox`.
+3. Click **Load Temporary Add-on**.
+4. Select the project root `manifest.json`.
+5. Refresh any already open video pages.
 
 > [!NOTE]
-> Do not select a zip archive, and do not select a subdirectory outside the project root. The chosen directory must contain `manifest.json` directly.
+> For Firefox users, please select the compressed file directly; do not extract it.
 
 ### Update
 
@@ -156,7 +151,7 @@ This project currently needs no npm, build tools, or extra install steps. The HT
 3. Click the reload button on the Universal Player card.
 4. Refresh any already open video pages.
 
-Before updating, keep a copy of the old directory so you do not accidentally lose watch history that has not been exported. Extension updates usually do not delete `chrome.storage.local` data, but removing the extension itself may cause local data loss.
+Before updating, keep a copy of the old directory so you do not accidentally lose watch history that has not been exported. Extension updates usually do not delete `browser.storage.local` data, but removing the extension itself may cause local data loss.
 
 ## Usage
 
@@ -241,7 +236,7 @@ The background service worker is responsible for:
 
 ### Data stored locally
 
-The following data may be stored in the browser’s `chrome.storage.local`:
+The following data may be stored in the browser’s `browser.storage.local`:
 
 * Auto-replace setting.
 * Auto-switch setting.
@@ -258,11 +253,11 @@ The following data may be stored in the browser’s `chrome.storage.local`:
 To support media resolve, danmaku, and history metadata features, the extension sends requests to third-party services, including but not limited to:
 
 
-| Service                | Data sent or requested                                                              | Purpose                                                                                      |
-| ---------------------- | ----------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `data.video.iqiyi.com` | Time request                                                                        | Obtain the time value needed to build resolve requests.                                      |
-| `cache.0567890.xyz`    | Encoded current video page URL and signature parameters                             | Obtain media URLs and video info.                                                            |
-| `dmku.hls.one`         | Normalized video URL, danmaku ID, danmaku text, time, color, and font size          | Fetch platform/independent danmaku, title or episode info, and send independent danmaku.     |
+| Service                | Data sent or requested                                                     | Purpose                                                                                  |
+| ---------------------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `data.video.iqiyi.com` | Time request                                                               | Obtain the time value needed to build resolve requests.                                  |
+| `cache.0567890.xyz`    | Encoded current video page URL and signature parameters                    | Obtain media URLs and video info.                                                        |
+| `dmku.hls.one`         | Normalized video URL, danmaku ID, danmaku text, time, color, and font size | Fetch platform/independent danmaku, title or episode info, and send independent danmaku. |
 
 Some requests set `credentials: "omit"` and do not intentionally send third-party cookies, but service providers may still log IP addresses, request times, User-Agent, or other ordinary server logs according to their own policies.
 
@@ -421,6 +416,22 @@ player/libs/media-chrome.js
 
 The source package already includes it; no separate install script is required. If the file is missing, re-download the full repository instead of copying only some files.
 
+### hls.js is not loaded
+
+Firefox desktop does not reliably play `.m3u8` directly as `<video src>`. The standard HLS path requires:
+
+```text
+player/libs/hls.min.js
+```
+
+Run:
+
+```text
+tools/download-hls.cmd
+```
+
+After the download finishes, reload the extension in `about:debugging` and refresh the video page. Do not reference a remote CDN script directly from extension HTML.
+
 ### API returns 403
 
 This usually means the third-party resolve service rejected the request, network, or IP. The extension itself cannot guarantee external service availability. Retry later, switch networks, or contact the corresponding API provider.
@@ -464,7 +475,7 @@ Check:
 * Site DOM changes may break adapters.
 * Playback depends on third-party resolve APIs, danmaku APIs, and CDNs.
 * Not all video pages, live pages, short-video pages, or user-upload pages are supported.
-* Standard HLS is not guaranteed to play natively in every Chromium browser.
+* Standard HLS requires the local `player/libs/hls.min.js` file and Firefox Media Source Extensions support.
 * PNG unpack currently targets MPEG-TS segments primarily.
 * DRM decryption is not handled, and this project must not be used to bypass paid access controls.
 * External API domains, parameters, or signature algorithms may change and require code updates.
@@ -528,6 +539,7 @@ This project includes or uses the following third-party open-source components:
 
 * [Media Chrome](https://github.com/muxinc/media-chrome), currently pinned to `4.19.2`, MIT License.
 * [CryptoJS](https://github.com/brix/crypto-js), MIT License.
+* [hls.js](https://github.com/video-dev/hls.js), currently pinned to `1.6.16`, Apache License 2.0.
 
 Third-party components remain under their original licenses. See `THIRD_PARTY_NOTICES.md` and each upstream project’s own license files for details.
 

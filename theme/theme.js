@@ -20,7 +20,7 @@
   }
 
   async function getStoredTheme() {
-    const result = await chrome.storage.local.get({ [STORAGE_KEY]: DEFAULT_THEME });
+    const result = await browser.storage.local.get({ [STORAGE_KEY]: DEFAULT_THEME });
     return normalizeTheme(result[STORAGE_KEY]);
   }
 
@@ -31,7 +31,7 @@
 
   async function setTheme(theme) {
     const value = normalizeTheme(theme);
-    await chrome.storage.local.set({ [STORAGE_KEY]: value });
+    await browser.storage.local.set({ [STORAGE_KEY]: value });
     return applyTheme(value);
   }
 

@@ -1,11 +1,11 @@
-﻿<div align="center">
+<div align="center">
 
 # 通用播放器
 
 **Universal Player — 面向多个在线视频平台的自定义播放器扩展**
 
 [![Version](https://img.shields.io/badge/version-1.0.0-2ea44f.svg)](#)
-[![Manifest](https://img.shields.io/badge/Chrome-Manifest%20V3-4285F4.svg)](#)
+[![Browser](https://img.shields.io/badge/Firefox-Manifest%20V3-FF7139.svg)](#)
 [![License](https://img.shields.io/badge/license-GPL--3.0--or--later-blue.svg)](LICENSE)
 
 [English](README.md) | **中文**
@@ -70,7 +70,7 @@
 * 调整不透明度、字体大小、移动速度、显示区域和同屏上限。
 * 自定义颜色与字号并发送独立弹幕。
 * 弹幕请求失败时不会阻止视频继续播放。
-* 弹幕设置保存在 `chrome.storage.local`。
+* 弹幕设置保存在 `browser.storage.local`。
 
 ### 观看历史与断点续播
 
@@ -90,7 +90,7 @@
 播放器会分析解析接口返回的媒体地址，并根据内容类型选择播放模式：
 
 * 普通媒体地址：交给浏览器原生媒体元素播放。
-* 标准 HLS：交给浏览器处理，实际兼容性取决于浏览器和媒体格式。
+* 标准 HLS：在 Firefox 中通过本地 `hls.js` 播放，不再把 `.m3u8` 直接交给原生 `<video>`。
 * PNG 外壳 HLS：检测 PNG 尾部附加的 MPEG-TS 媒体数据，并使用 Media Source Extensions 边下载、边解包、边播放。
 
 流式解包模块包含：
@@ -131,23 +131,18 @@
 
 ## 安装
 
-本项目当前不需要 npm、构建工具或额外安装步骤，运行所需的 HTML、CSS、JavaScript 和第三方浏览器文件已经包含在扩展目录中。
+本项目不需要 npm 或构建步骤，但首次加载 Firefox 扩展前需要运行 `tools/download-hls.cmd`，或者手动把 `hls.min.js` 放到 `player/libs/hls.min.js`。
 
 ### 从源码安装
 
-1. 下载本仓库源码并解压。
-2. 打开 Chrome、Edge 或其他基于 Chromium 的浏览器。
-3. 在地址栏进入：
-
-   * Chrome：`chrome://extensions/`
-   * Edge：`edge://extensions/`
-4. 开启右上角的“开发者模式”。
-5. 点击“加载已解压的扩展程序”。
-6. 选择包含 `manifest.json` 的项目根目录。
-7. 将“通用播放器”固定到浏览器工具栏，方便操作。
+1. 下载本仓库源码。
+2. 在 Firefox 中打开 `about:debugging#/runtime/this-firefox`。
+3. 点击“临时载入附加组件”。
+4. 选择项目根目录中的 `manifest.json`。
+5. 刷新已经打开的视频页面。
 
 > [!NOTE]
-> 请不要直接选择压缩包，也不要选择项目根目录之外的子目录。浏览器所选目录中必须能够直接看到 `manifest.json`。
+> 对于firefox用户请直接选择压缩包，不要解压
 
 ### 更新
 
@@ -156,7 +151,7 @@
 3. 点击“通用播放器”卡片上的重新加载按钮。
 4. 刷新已经打开的视频页面。
 
-更新前建议保留原目录，避免误删尚未导出的观看历史。扩展更新通常不会删除 `chrome.storage.local` 中的数据，但删除扩展本身可能导致本地数据丢失。
+更新前建议保留原目录，避免误删尚未导出的观看历史。扩展更新通常不会删除 `browser.storage.local` 中的数据，但删除扩展本身可能导致本地数据丢失。
 
 ## 使用方法
 
@@ -241,7 +236,7 @@ player/index.html iframe
 
 ### 本地保存的数据
 
-以下数据可能保存在浏览器的 `chrome.storage.local` 中：
+以下数据可能保存在浏览器的 `browser.storage.local` 中：
 
 * 自动替换设置。
 * 自动切换设置。
@@ -258,7 +253,7 @@ player/index.html iframe
 为了完成媒体解析、弹幕和历史元数据功能，扩展会向第三方服务发送请求，包括但不限于：
 
 
-| 服务              | 发送或请求的内容                                    | 用途                                                       |
+| 服务                   | 发送或请求的内容                                    | 用途                                                       |
 | ---------------------- | --------------------------------------------------- | ---------------------------------------------------------- |
 | `data.video.iqiyi.com` | 时间请求                                            | 获取生成解析请求所需的时间值。                             |
 | `cache.0567890.xyz`    | 当前视频页面 URL 的编码值和签名参数                 | 获取媒体地址与视频信息。                                   |
@@ -421,6 +416,22 @@ player/libs/media-chrome.js
 
 当前源码包已经包含该文件，不需要另外运行安装脚本。若文件缺失，请重新下载完整仓库，而不是单独复制部分文件。
 
+### hls.js 未加载
+
+Firefox 桌面版不会可靠地把 `.m3u8` 直接作为 `<video src>` 播放。标准 HLS 分支需要：
+
+```text
+player/libs/hls.min.js
+```
+
+运行：
+
+```text
+tools/download-hls.cmd
+```
+
+下载完成后，在 `about:debugging` 中重新加载扩展并刷新视频页面。不要在扩展 HTML 中直接引用远程 CDN 脚本。
+
 ### 接口返回 403
 
 这通常表示第三方解析服务拒绝了当前请求、网络或 IP。扩展本身无法保证外部服务可用。请稍后重试、切换网络，或联系对应接口服务提供方。
@@ -464,7 +475,7 @@ player/libs/media-chrome.js
 * 网站 DOM 结构变化可能导致适配器失效。
 * 播放能力依赖第三方解析接口、弹幕接口和 CDN。
 * 不支持所有视频页面、直播页面、短视频页面或用户上传页面。
-* 不保证标准 HLS 在所有 Chromium 浏览器中原生可播。
+* 标准 HLS 依赖本地 `player/libs/hls.min.js` 和 Firefox 的 Media Source Extensions。
 * PNG 解包目前主要面向 MPEG-TS 分片。
 * 不处理 DRM 解密，也不应被用于绕过付费或访问控制。
 * 外部接口域名、参数或签名算法变化后可能需要更新代码。
@@ -528,6 +539,7 @@ docs: update installation guide
 
 * [Media Chrome](https://github.com/muxinc/media-chrome)，当前固定版本为 `4.19.2`，使用 MIT License。
 * [CryptoJS](https://github.com/brix/crypto-js)，使用 MIT License。
+* [hls.js](https://github.com/video-dev/hls.js)，当前固定版本为 `1.6.16`，使用 Apache License 2.0。
 
 第三方组件仍受各自原始许可证约束。详细信息请参阅 `THIRD_PARTY_NOTICES.md` 以及第三方项目自身的许可证文件。
 

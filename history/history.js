@@ -42,7 +42,7 @@
         episodeName,
         episodeIndex: episodeNumberFromName(episodeName) ?? item.episodeIndex
       };
-      await chrome.runtime.sendMessage({
+      await browser.runtime.sendMessage({
         type: "VPR_HISTORY_UPSERT",
         item: updated,
         preserveUpdatedAt: true
@@ -163,12 +163,12 @@
         progressSpans[1].textContent = formatDate(item.updatedAt);
         const image = card.querySelector("img");
         if (image) { image.src = item.cover; image.alt = `${title} ${episodeLabel}`; }
-        const open = () => chrome.tabs.create({ url: item.url });
+        const open = () => browser.tabs.create({ url: item.url });
         card.addEventListener("click", open);
         card.addEventListener("keydown", event => { if (event.key === "Enter" || event.key === " ") open(); });
         card.querySelector(".delete-button").addEventListener("click", async event => {
           event.stopPropagation();
-          await chrome.runtime.sendMessage({ type:"VPR_HISTORY_DELETE", url:item.url });
+          await browser.runtime.sendMessage({ type:"VPR_HISTORY_DELETE", url:item.url });
           await load();
         });
         grid.appendChild(card);
@@ -179,7 +179,7 @@
   }
 
   async function load(allowHydration = true) {
-    const response = await chrome.runtime.sendMessage({ type:"VPR_HISTORY_LIST" });
+    const response = await browser.runtime.sendMessage({ type:"VPR_HISTORY_LIST" });
     if (!response?.ok) throw new Error(response?.message || i18n.t("history.loadFailed"));
     const items = response.items || [];
     render(items, response.storage);
@@ -190,7 +190,7 @@
 
   ui.clearAll.addEventListener("click", async () => {
     if (!confirm(i18n.t("history.clearConfirm"))) return;
-    await chrome.runtime.sendMessage({ type:"VPR_HISTORY_CLEAR" });
+    await browser.runtime.sendMessage({ type:"VPR_HISTORY_CLEAR" });
     await load();
   });
 

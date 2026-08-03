@@ -176,7 +176,7 @@
 
   async function readSettings() {
     try {
-      const stored = await chrome.storage.local.get({
+      const stored = await browser.storage.local.get({
         [SETTINGS_KEY]: DEFAULT_SETTINGS
       });
       return normalizeSettings(stored[SETTINGS_KEY]);
@@ -208,7 +208,7 @@
 
   async function persistSettings(settings) {
     try {
-      await chrome.storage.local.set({
+      await browser.storage.local.set({
         [SETTINGS_KEY]: normalizeSettings(settings)
       });
     } catch (error) {

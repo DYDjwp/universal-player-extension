@@ -79,7 +79,7 @@
 
     const iframe = document.createElement("iframe");
     const playerUrl = new URL(
-      chrome.runtime.getURL("player/index.html")
+      browser.runtime.getURL("player/index.html")
     );
 
     playerUrl.searchParams.set("site", siteId);

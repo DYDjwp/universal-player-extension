@@ -16,7 +16,7 @@
       throw new Error("找不到当前标签页");
     }
 
-    return chrome.scripting.executeScript({
+    return browser.scripting.executeScript({
       target: {
         tabId
       },

@@ -43,7 +43,7 @@
   }
 
   async function refreshStorageStatus() {
-    const response = await chrome.runtime.sendMessage({ type: "VPR_STORAGE_STATUS" });
+    const response = await browser.runtime.sendMessage({ type: "VPR_STORAGE_STATUS" });
     if (!response?.ok) throw new Error(response?.message || i18n.t("settings.storageReadError"));
     const status = response.storage;
     ui.storageText.textContent = i18n.t("settings.storageUsed", {
@@ -59,7 +59,7 @@
   }
 
   async function initialize() {
-    const settings = await chrome.storage.local.get({
+    const settings = await browser.storage.local.get({
       autoReplace: false,
       autoChange: false,
       historyEnabled: true,
@@ -80,7 +80,7 @@
     [ui.historyEnabled, "historyEnabled"]
   ]) {
     element.addEventListener("change", async () => {
-      await chrome.storage.local.set({ [key]: element.checked });
+      await browser.storage.local.set({ [key]: element.checked });
       await refreshStorageStatus();
     });
   }
@@ -105,13 +105,13 @@
   });
 
   ui.openHistoryButton.addEventListener("click", () => {
-    chrome.tabs.create({ url: chrome.runtime.getURL("history/index.html") });
+    browser.tabs.create({ url: browser.runtime.getURL("history/index.html") });
   });
 
   ui.clearStorageButton.addEventListener("click", async () => {
     if (!confirm(i18n.t("settings.clearConfirm"))) return;
-    await chrome.storage.local.clear();
-    await chrome.storage.local.set({
+    await browser.storage.local.clear();
+    await browser.storage.local.set({
       historyEnabled: true,
       language: i18n.DEFAULT_LANG,
       theme: themeApi.DEFAULT_THEME

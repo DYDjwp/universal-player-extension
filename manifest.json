@@ -6,6 +6,12 @@
   "icons": {
     "128": "assets/icon/icon.png"
   },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "universalplayer@bearcsclub.com",
+      "strict_min_version": "128.0"
+    }
+  },
   "permissions": [
     "activeTab",
     "scripting",
@@ -15,7 +21,11 @@
     "tabs"
   ],
   "background": {
-    "service_worker": "background.js"
+    "scripts": [
+      "shared/site-registry.js",
+      "initial.js",
+      "background.js"
+    ]
   },
   "host_permissions": [
     "https://*/*"

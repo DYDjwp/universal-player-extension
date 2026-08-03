@@ -6,11 +6,9 @@
  * 加载：
  * 1. 网站识别规则
  * 2. 播放器初始化模块
+ * 注意：firefox 的 background.js 不能直接 import module，必须通过 manifest.json 的 scripts 注入。
  */
-importScripts(
-  "shared/site-registry.js",
-  "initial.js"
-);
+
 
 /* =========================================================
  * 设置与替换记录
@@ -20,7 +18,7 @@ async function getSettings() {
   const {
     autoReplace = false,
     autoChange = false
-  } = await chrome.storage.local.get([
+  } = await browser.storage.local.get([
     "autoReplace",
     "autoChange"
   ]);
@@ -95,7 +93,7 @@ function normalizeReplacedTabItem(item) {
 
 async function getReplacedTabItems() {
   const stored =
-    await chrome.storage.local.get([
+    await browser.storage.local.get([
       "replacedTabItems",
       "replacedTabIds"
     ]);
@@ -144,11 +142,11 @@ async function getReplacedTabItems() {
       "replacedTabIds"
     )
   ) {
-    await chrome.storage.local.set({
+    await browser.storage.local.set({
       replacedTabItems: normalizedItems
     });
 
-    await chrome.storage.local.remove(
+    await browser.storage.local.remove(
       "replacedTabIds"
     );
   }
@@ -182,7 +180,7 @@ function mutateReplacedTabItems(mutator) {
         JSON.stringify(updatedItems) !==
         JSON.stringify(items)
       ) {
-        await chrome.storage.local.set({
+        await browser.storage.local.set({
           replacedTabItems: updatedItems
         });
       }
@@ -303,7 +301,7 @@ function normalizeWatchHistoryItem(rawItem) {
 }
 
 async function getWatchHistory() {
-  const stored = await chrome.storage.local.get({ [WATCH_HISTORY_KEY]: [] });
+  const stored = await browser.storage.local.get({ [WATCH_HISTORY_KEY]: [] });
   const rawItems = Array.isArray(stored[WATCH_HISTORY_KEY]) ? stored[WATCH_HISTORY_KEY] : [];
   const byUrl = new Map();
 
@@ -316,7 +314,7 @@ async function getWatchHistory() {
 
   const items = [...byUrl.values()].sort((a, b) => b.updatedAt - a.updatedAt);
   if (JSON.stringify(items) !== JSON.stringify(rawItems)) {
-    await chrome.storage.local.set({ [WATCH_HISTORY_KEY]: items });
+    await browser.storage.local.set({ [WATCH_HISTORY_KEY]: items });
   }
   return items;
 }
@@ -327,7 +325,7 @@ function mutateWatchHistory(mutator) {
     .then(async () => {
       const items = await getWatchHistory();
       const updated = await mutator(items.map(item => ({ ...item })));
-      await chrome.storage.local.set({ [WATCH_HISTORY_KEY]: updated });
+      await browser.storage.local.set({ [WATCH_HISTORY_KEY]: updated });
       return updated;
     });
   watchHistoryMutationChain = operation;
@@ -335,8 +333,8 @@ function mutateWatchHistory(mutator) {
 }
 
 async function getStorageStatus() {
-  const bytesInUse = await chrome.storage.local.getBytesInUse(null);
-  const quotaBytes = Number(chrome.storage.local.QUOTA_BYTES) || DEFAULT_STORAGE_QUOTA;
+  const bytesInUse = await browser.storage.local.getBytesInUse(null);
+  const quotaBytes = Number(browser.storage.local.QUOTA_BYTES) || DEFAULT_STORAGE_QUOTA;
   const ratio = quotaBytes > 0 ? bytesInUse / quotaBytes : 0;
   return {
     bytesInUse,
@@ -352,7 +350,7 @@ async function upsertWatchHistory(rawItem, preserveUpdatedAt = false) {
   const normalized = normalizeWatchHistoryItem(rawItem);
   if (!normalized) throw new Error("历史记录 URL 无效");
 
-  const settings = await chrome.storage.local.get({ historyEnabled: true });
+  const settings = await browser.storage.local.get({ historyEnabled: true });
   if (!settings.historyEnabled) {
     return { saved: false, disabled: true, item: null, storage: await getStorageStatus() };
   }
@@ -391,7 +389,7 @@ async function deleteWatchHistory(urlString) {
 }
 
 async function clearWatchHistory() {
-  await chrome.storage.local.set({ [WATCH_HISTORY_KEY]: [] });
+  await browser.storage.local.set({ [WATCH_HISTORY_KEY]: [] });
   return true;
 }
 
@@ -448,7 +446,7 @@ async function registerNetworkRules() {
       },
       condition: {
         initiatorDomains: [
-          chrome.runtime.id
+          new URL(browser.runtime.getURL("")).hostname
         ],
         requestDomains: [
           "cdn.hls.one",
@@ -465,14 +463,14 @@ async function registerNetworkRules() {
   ];
 
   try {
-    await chrome.declarativeNetRequest.updateDynamicRules({
+    await browser.declarativeNetRequest.updateDynamicRules({
       removeRuleIds: rules.map(rule => rule.id),
       addRules: rules
     });
 
     console.log(
       "DNR 规则注册成功：",
-      await chrome.declarativeNetRequest.getDynamicRules()
+      await browser.declarativeNetRequest.getDynamicRules()
     );
   } catch (error) {
     console.error(
@@ -490,7 +488,7 @@ void getReplacedTabItems().catch(error => {
   );
 });
 
-chrome.runtime.onInstalled.addListener(() => {
+browser.runtime.onInstalled.addListener(() => {
   void registerNetworkRules();
   void getReplacedTabItems().catch(error => {
     console.warn(
@@ -500,7 +498,7 @@ chrome.runtime.onInstalled.addListener(() => {
   });
 });
 
-chrome.runtime.onStartup.addListener(() => {
+browser.runtime.onStartup.addListener(() => {
   void registerNetworkRules();
   void getReplacedTabItems().catch(error => {
     console.warn(
@@ -514,10 +512,10 @@ chrome.runtime.onStartup.addListener(() => {
  * onRuleMatchedDebug 只用于开发调试。
  */
 if (
-  chrome.declarativeNetRequest
+  browser.declarativeNetRequest
     ?.onRuleMatchedDebug
 ) {
-  chrome.declarativeNetRequest
+  browser.declarativeNetRequest
     .onRuleMatchedDebug
     .addListener(info => {
       console.log("DNR 规则命中：", {
@@ -683,7 +681,7 @@ async function createPublicPageInfoWithState(
 }
 
 async function getCurrentTab() {
-  const tabs = await chrome.tabs.query({
+  const tabs = await browser.tabs.query({
     active: true,
     lastFocusedWindow: true
   });
@@ -754,7 +752,7 @@ async function initializePlayerForContext(
 
   try {
     const latestTab =
-      await chrome.tabs.get(context.tabId);
+      await browser.tabs.get(context.tabId);
     latestUrl = latestTab.url || "";
     latestContext = createPageContext(latestTab);
   } catch {
@@ -869,7 +867,7 @@ function queuePlayerInitialization(
       let latestTab;
 
       try {
-        latestTab = await chrome.tabs.get(tabId);
+        latestTab = await browser.tabs.get(tabId);
       } catch {
         await removeReplacedTabItem(tabId);
 
@@ -1083,7 +1081,7 @@ async function notifyCurrentPageChanged(tab) {
     );
 
   try {
-    await chrome.runtime.sendMessage({
+    await browser.runtime.sendMessage({
       type:
         MESSAGE_TYPES.CURRENT_PAGE_CHANGED,
       pageInfo
@@ -1093,7 +1091,7 @@ async function notifyCurrentPageChanged(tab) {
   }
 }
 
-chrome.tabs.onUpdated.addListener(
+browser.tabs.onUpdated.addListener(
   (tabId, changeInfo, tab) => {
     const urlChanged =
       typeof changeInfo.url === "string";
@@ -1129,7 +1127,7 @@ chrome.tabs.onUpdated.addListener(
 
       try {
         latestTab =
-          await chrome.tabs.get(tabId);
+          await browser.tabs.get(tabId);
       } catch {
         return;
       }
@@ -1146,11 +1144,11 @@ chrome.tabs.onUpdated.addListener(
   }
 );
 
-chrome.tabs.onActivated.addListener(
+browser.tabs.onActivated.addListener(
   activeInfo => {
     void (async () => {
       const tab =
-        await chrome.tabs.get(
+        await browser.tabs.get(
           activeInfo.tabId
         );
 
@@ -1160,7 +1158,7 @@ chrome.tabs.onActivated.addListener(
       );
 
       const latestTab =
-        await chrome.tabs.get(
+        await browser.tabs.get(
           activeInfo.tabId
         );
 
@@ -1180,7 +1178,7 @@ chrome.tabs.onActivated.addListener(
  * popup 消息处理
  * ======================================================= */
 
-chrome.runtime.onMessage.addListener(
+browser.runtime.onMessage.addListener(
   (message, sender, sendResponse) => {
     if (
       !message ||
@@ -1291,7 +1289,7 @@ chrome.runtime.onMessage.addListener(
  * 清理已经关闭的 tab
  * ======================================================= */
 
-chrome.tabs.onRemoved.addListener(tabId => {
+browser.tabs.onRemoved.addListener(tabId => {
   tabOperationChains.delete(tabId);
 
   void removeReplacedTabItem(tabId)
