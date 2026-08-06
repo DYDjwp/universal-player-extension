@@ -1,7 +1,7 @@
 {
   "app.name": "通用播放器",
   "app.brand": "UNIVERSAL PLAYER",
-  "app.version": "v1.0.0",
+  "app.version": "v1.0.1-beta",
 
   "settings.documentTitle": "通用播放器设置",
   "settings.heading": "播放器设置",
@@ -118,5 +118,10 @@
   "history.completed": "已看完",
   "history.clearConfirm": "确定删除全部观看历史吗？此操作无法撤销。",
   "history.loadFailed": "无法读取观看历史",
-  "history.readFailed": "读取历史记录失败"
+  "history.readFailed": "读取历史记录失败",
+  "history.importHistory": "导入观看历史",
+  "history.exportHistory": "导出观看历史",
+  "history.importSuccess": "观看历史导入成功",
+  "history.importFailed": "观看历史导入失败",
+  "history.importFileTooLarge": "导入的文件太大"
 }

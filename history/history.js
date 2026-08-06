@@ -24,6 +24,55 @@
     return match ? Number(match[1] || match[2]) : null;
   }
 
+  async function exportHistory() {
+    const response = await chrome.runtime.sendMessage({
+      type: "VPR_HISTORY_LIST"
+    });
+
+    if (!response?.ok) {
+      throw new Error(
+        response?.message || i18n.t("history.loadFailed")
+      );
+    }
+
+    const items = Array.isArray(response.items)
+      ? response.items
+      : [];
+
+    const backup = {
+      format: "universal-player-history",
+      schemaVersion: 1,
+      extensionVersion: chrome.runtime.getManifest().version,
+      exportedAt: new Date().toISOString(),
+      items
+    };
+
+    const json = JSON.stringify(backup, null, 2);
+
+    const blob = new Blob([json], {
+      type: "application/json;charset=utf-8"
+    });
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    const timestamp = new Date()
+      .toISOString()
+      .replace(/[:.]/g, "-");
+
+    link.href = url;
+    link.download = `vpr_history_${timestamp}.json`;
+    link.style.display = "none";
+
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+    }, 1000);
+  }
+
   async function fetchMetadata(item) {
     try {
       const response = await fetch(
@@ -192,6 +241,43 @@
     if (!confirm(i18n.t("history.clearConfirm"))) return;
     await browser.runtime.sendMessage({ type:"VPR_HISTORY_CLEAR" });
     await load();
+  });
+
+  document.getElementById("exportHistoryDatas").addEventListener("click", async () => {
+    try {
+      await exportHistory();
+    } catch (error) {
+      alert(error?.message || String(error));
+    }
+  });
+
+  document.getElementById("importHistoryDatas").addEventListener("change", async event => {
+    const input = event.target;
+    if (!input.files?.length) return;
+    const file = input.files[0];
+    try {
+      if (file.size > 10 * 1024 * 1024) {
+        throw new Error(i18n.t("history.importFileTooLarge"));
+      }
+      const text = await file.text();
+      const data = JSON.parse(text);
+      let result = [];
+      if (data?.format !== "universal-player-history" || data?.schemaVersion !== 1 || !Array.isArray(data.items)) {
+        throw new Error(i18n.t("history.importFailed"));
+      }
+      for (const item of data.items) {
+        result = await chrome.runtime.sendMessage({ type: "VPR_HISTORY_UPSERT", item, preserveUpdatedAt: true });
+      }
+      if (!result?.ok) {
+        throw new Error(result?.message || i18n.t("history.importFailed"));
+      }
+      await load();
+      alert(i18n.t("history.importSuccess", { count: data.items.length }));
+    } catch (error) {
+      alert(error?.message || String(error));
+    } finally {
+      input.value = "";
+    }
   });
 
   Promise.all([

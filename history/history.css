@@ -1,4 +1,4 @@
-:root,
+root,
 html[data-theme="black"] {
   color-scheme: dark;
   font-family: Inter, "Segoe UI", "Microsoft YaHei", sans-serif;
@@ -24,6 +24,7 @@ html[data-theme="black"] {
   --warning-border: #5a2020;
   --warning-text: #ffb3b3;
   --hover-border: #666666;
+  --control-hover-bg: #1b1b1b;
 }
 
 html[data-theme="white"] {
@@ -50,6 +51,7 @@ html[data-theme="white"] {
   --warning-border: #f0b4b4;
   --warning-text: #8b0000;
   --hover-border: #000000;
+  --control-hover-bg: #e9e9e9;
 }
 
 * { box-sizing: border-box; }
@@ -58,6 +60,9 @@ body {
   min-height: 100vh;
   color: var(--text);
   background: var(--bg);
+}
+.hidden-input {
+  display: none;
 }
 button { font: inherit; }
 .history-shell { width: min(1180px, calc(100% - 36px)); margin: 0 auto; padding: 46px 0 72px; }
@@ -85,6 +90,59 @@ h1 { margin: 0; font-size: clamp(30px, 5vw, 44px); }
   color: var(--warning-text);
   background: var(--warning-bg);
 }
+
+#Historytool-container {
+  all: unset;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+#importHistory,
+#exportHistory {
+  all: unset;
+  display: block;
+}
+
+.import-history,
+.export-history {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 8px 13px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  user-select: none;
+  transition: border-color .15s ease, background-color .15s ease;
+}
+
+.import-history:hover,
+.export-history:hover {
+  border-color: var(--hover-border);
+  background: var(--chip-bg);
+}
+
+.import-history:focus-visible,
+.export-history:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.export-history:disabled {
+  cursor: not-allowed;
+  opacity: .5;
+}
+
 .history-list { display: grid; gap: 24px; }
 .series-group {
   padding: 20px;
