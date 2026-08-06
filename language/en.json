@@ -1,7 +1,7 @@
 {
   "app.name": "Universal Player",
   "app.brand": "UNIVERSAL PLAYER",
-  "app.version": "v1.0.0",
+  "app.version": "v1.0.1-beta",
 
   "settings.documentTitle": "Universal Player Settings",
   "settings.heading": "Player Settings",
@@ -118,5 +118,10 @@
   "history.completed": "Completed",
   "history.clearConfirm": "Delete all watch history? This cannot be undone.",
   "history.loadFailed": "Unable to read watch history",
-  "history.readFailed": "Failed to load history"
+  "history.readFailed": "Failed to load history",
+  "history.importHistory": "Import watch history",
+  "history.exportHistory": "Export watch history",
+  "history.importSuccess": "Watch history imported successfully",
+  "history.importFailed": "Failed to import watch history",
+  "history.importFileTooLarge": "Import file too large" 
 }

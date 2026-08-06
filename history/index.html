@@ -20,6 +20,15 @@
       </div>
     </header>
     <p id="storageWarning" class="storage-warning" hidden></p>
+    <div id="Historytool-container">
+      <div id="importHistory">
+        <input type="file" id="importHistoryDatas" accept=".json" class="hidden-input" />
+        <label for="importHistoryDatas" class="import-history" data-i18n="history.importHistory">导入历史记录</label>
+      </div>
+      <div id="exportHistory">
+        <button id="exportHistoryDatas" class="export-history" type="button" data-i18n="history.exportHistory">导出历史记录</button>
+      </div>
+    </div>
     <section id="historyList" class="history-list" aria-live="polite"></section>
   </main>
   <script src="../theme/theme.js"></script>

@@ -83,6 +83,8 @@ Main capabilities:
 * Group episodes by title on a dedicated history page.
 * Click a history item to return to the original video page.
 * Delete a single record or clear all history.
+* Export all watch history records as a JSON backup file.
+* Import a compatible JSON backup file to restore watch history records.
 * Monitor local extension storage usage and warn near capacity limits.
 
 ### HLS detection and streaming unpack
@@ -181,6 +183,8 @@ Before updating, keep a copy of the old directory so you do not accidentally los
 2. Click **View watch history**.
 3. Click any record to return to the corresponding video page.
 4. Use the delete button on a record to remove one item, or use the top button to clear all history.
+5. Click **Export history** to download all records as a JSON backup file.
+6. Click **Import history** and select a compatible JSON backup file to restore records.
 
 ## How it works
 

@@ -24,6 +24,55 @@
     return match ? Number(match[1] || match[2]) : null;
   }
 
+  async function exportHistory() {
+    const response = await chrome.runtime.sendMessage({
+      type: "VPR_HISTORY_LIST"
+    });
+
+    if (!response?.ok) {
+      throw new Error(
+        response?.message || i18n.t("history.loadFailed")
+      );
+    }
+
+    const items = Array.isArray(response.items)
+      ? response.items
+      : [];
+
+    const backup = {
+      format: "universal-player-history",
+      schemaVersion: 1,
+      extensionVersion: chrome.runtime.getManifest().version,
+      exportedAt: new Date().toISOString(),
+      items
+    };
+
+    const json = JSON.stringify(backup, null, 2);
+
+    const blob = new Blob([json], {
+      type: "application/json;charset=utf-8"
+    });
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    const timestamp = new Date()
+      .toISOString()
+      .replace(/[:.]/g, "-");
+
+    link.href = url;
+    link.download = `vpr_history_${timestamp}.json`;
+    link.style.display = "none";
+
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+    }, 1000);
+  }
+
   async function fetchMetadata(item) {
     try {
       const response = await fetch(
@@ -71,11 +120,11 @@
   function formatTime(seconds) {
     const value = Math.max(0, Math.floor(Number(seconds) || 0));
     const h = Math.floor(value / 3600), m = Math.floor((value % 3600) / 60), s = value % 60;
-    return h ? `${h}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}` : `${m}:${String(s).padStart(2,"0")}`;
+    return h ? `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}` : `${m}:${String(s).padStart(2, "0")}`;
   }
   function formatDate(timestamp) {
     const locale = i18n.getLang() === "en" ? "en-US" : "zh-CN";
-    return new Intl.DateTimeFormat(locale, { month:"short", day:"numeric", hour:"2-digit", minute:"2-digit" }).format(new Date(timestamp));
+    return new Intl.DateTimeFormat(locale, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(timestamp));
   }
   function fallbackTitle(item) {
     try {
@@ -85,7 +134,7 @@
       return i18n.t("history.untitled");
     }
   }
-  function sortEpisodes(a,b) {
+  function sortEpisodes(a, b) {
     const ai = Number.isFinite(a.episodeIndex) ? a.episodeIndex : Number.MAX_SAFE_INTEGER;
     const bi = Number.isFinite(b.episodeIndex) ? b.episodeIndex : Number.MAX_SAFE_INTEGER;
     return ai - bi || b.updatedAt - a.updatedAt;
@@ -168,7 +217,7 @@
         card.addEventListener("keydown", event => { if (event.key === "Enter" || event.key === " ") open(); });
         card.querySelector(".delete-button").addEventListener("click", async event => {
           event.stopPropagation();
-          await chrome.runtime.sendMessage({ type:"VPR_HISTORY_DELETE", url:item.url });
+          await chrome.runtime.sendMessage({ type: "VPR_HISTORY_DELETE", url: item.url });
           await load();
         });
         grid.appendChild(card);
@@ -179,7 +228,7 @@
   }
 
   async function load(allowHydration = true) {
-    const response = await chrome.runtime.sendMessage({ type:"VPR_HISTORY_LIST" });
+    const response = await chrome.runtime.sendMessage({ type: "VPR_HISTORY_LIST" });
     if (!response?.ok) throw new Error(response?.message || i18n.t("history.loadFailed"));
     const items = response.items || [];
     render(items, response.storage);
@@ -190,8 +239,45 @@
 
   ui.clearAll.addEventListener("click", async () => {
     if (!confirm(i18n.t("history.clearConfirm"))) return;
-    await chrome.runtime.sendMessage({ type:"VPR_HISTORY_CLEAR" });
+    await chrome.runtime.sendMessage({ type: "VPR_HISTORY_CLEAR" });
     await load();
+  });
+
+  document.getElementById("exportHistoryDatas").addEventListener("click", async () => {
+    try {
+      await exportHistory();
+    } catch (error) {
+      alert(error?.message || String(error));
+    }
+  });
+
+  document.getElementById("importHistoryDatas").addEventListener("change", async event => {
+    const input = event.target;
+    if (!input.files?.length) return;
+    const file = input.files[0];
+    try {
+      if (file.size > 10 * 1024 * 1024) {
+        throw new Error(i18n.t("history.importFileTooLarge"));
+      }
+      const text = await file.text();
+      const data = JSON.parse(text);
+      let result = [];
+      if (data?.format !== "universal-player-history" || data?.schemaVersion !== 1 || !Array.isArray(data.items)) {
+        throw new Error(i18n.t("history.importFailed"));
+      }
+      for (const item of data.items) {
+        result = await chrome.runtime.sendMessage({ type: "VPR_HISTORY_UPSERT", item, preserveUpdatedAt: true });
+      }
+      if (!result?.ok) {
+        throw new Error(result?.message || i18n.t("history.importFailed"));
+      }
+      await load();
+      alert(i18n.t("history.importSuccess", { count: data.items.length }));
+    } catch (error) {
+      alert(error?.message || String(error));
+    } finally {
+      input.value = "";
+    }
   });
 
   Promise.all([
