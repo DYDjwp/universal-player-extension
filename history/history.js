@@ -189,19 +189,29 @@
         const percent = item.completed ? 100 : Math.max(0, Math.min(100, Number(item.percent) || 0));
         const deleteLabel = i18n.t("history.deleteRecord");
         card.innerHTML = `
-          <button class="delete-button" type="button" title="${deleteLabel}" aria-label="${deleteLabel}">×</button>
+          <button class="delete-button" type="button">×</button>
           <div class="cover-wrap">
-            ${item.cover ? `<img alt="">` : `<div class="cover-placeholder"></div>`}
+            <div class="cover-placeholder"></div>
             <span class="percent-badge"></span>
           </div>
           <div class="card-body">
             <h3 class="episode-title"></h3>
             <span class="url"></span>
             <div class="progress-row"><span></span><span></span></div>
-            <div class="progress-track"><span style="width:${percent}%"></span></div>
+            <div class="progress-track"><span></span></div>
           </div>`;
         const placeholder = card.querySelector(".cover-placeholder");
-        if (placeholder) placeholder.textContent = i18n.t("history.noCover");
+        if (item.cover) {
+          const image = document.createElement("img");
+          image.alt = "";
+          placeholder.replaceWith(image);
+        } else if (placeholder) {
+          placeholder.textContent = i18n.t("history.noCover");
+        }
+        const deleteButton = card.querySelector(".delete-button");
+        deleteButton.title = deleteLabel;
+        deleteButton.setAttribute("aria-label", deleteLabel);
+        card.querySelector(".progress-track span").style.width = `${percent}%`;
         card.querySelector(".percent-badge").textContent = item.completed
           ? i18n.t("history.completed")
           : `${percent.toFixed(0)}%`;
@@ -293,6 +303,9 @@
     .then(() => load())
     .catch(error => {
       ui.summary.textContent = error?.message || String(error);
-      ui.list.innerHTML = `<div class="empty-state">${i18n.t("history.readFailed")}</div>`;
+      const empty = document.createElement("div");
+      empty.className = "empty-state";
+      empty.textContent = i18n.t("history.readFailed");
+      ui.list.replaceChildren(empty);
     });
 })();
