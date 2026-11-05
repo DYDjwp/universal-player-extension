@@ -1,4 +1,4 @@
-name: History regression tests
+name: Extension regression tests
 on:
   push:
     branches: [main, firefox]
@@ -15,7 +15,9 @@ jobs:
       - name: Check JavaScript syntax
         run: |
           node --check background.js
+          node --check shared/console-clear-debug.js
+          node --check intercept-console-clear.js
           node --check history/history.js
           node --check tests/watch-history.test.cjs
       - name: Run history regression tests
-        run: node --test tests/watch-history.test.cjs
+        run: node --test tests/*.test.cjs
