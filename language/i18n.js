@@ -85,7 +85,7 @@
 
     for (const el of scope.querySelectorAll("[data-i18n-html]")) {
       const key = el.getAttribute("data-i18n-html");
-      if (key) el.innerHTML = t(key);
+      if (key) el.textContent = t(key);
     }
 
     const titleKey = document.documentElement.getAttribute("data-i18n-title");

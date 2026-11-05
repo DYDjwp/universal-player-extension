@@ -1577,7 +1577,11 @@
     prompt.id = "resume-prompt";
     prompt.type = "button";
     prompt.setAttribute("aria-label", `跳转到上次观看位置 ${formatWatchTime(record.progress)}`);
-    prompt.innerHTML = `<span>上次看到了 ${formatWatchTime(record.progress)}</span><strong>点击跳转</strong>`;
+    const progressLabel = document.createElement("span");
+    progressLabel.textContent = `上次看到了 ${formatWatchTime(record.progress)}`;
+    const jumpLabel = document.createElement("strong");
+    jumpLabel.textContent = "点击跳转";
+    prompt.append(progressLabel, jumpLabel);
 
     let dismissTimer = 0;
     let removeTimer = 0;
