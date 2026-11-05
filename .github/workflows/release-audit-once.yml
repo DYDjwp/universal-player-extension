@@ -16,8 +16,18 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Firefox Add-ons Validator
-        run: npx --yes web-ext@10.8.0 lint --source-dir . --self-hosted --output text
+      - name: Firefox Add-ons Validator and warning inventory
+        shell: bash
+        run: |
+          npx --yes web-ext@10.8.0 lint --source-dir . --self-hosted --output json > audit.json
+          node - <<'NODE'
+          const fs = require('fs');
+          const data = JSON.parse(fs.readFileSync('audit.json','utf8'));
+          console.log(JSON.stringify({
+            errors: data.errors?.map(x=>({code:x.code,file:x.file,line:x.line,message:x.message})),
+            warnings: data.warnings?.map(x=>({code:x.code,file:x.file,line:x.line,message:x.message}))
+          },null,2));
+          NODE
       - name: Check all first-party JavaScript syntax
         shell: bash
         run: |
