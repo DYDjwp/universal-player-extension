@@ -121,7 +121,7 @@
   "history.readFailed": "Failed to load history",
   "history.importHistory": "Import watch history",
   "history.exportHistory": "Export watch history",
-  "history.importSuccess": "Watch history imported successfully",
+  "history.importSuccess": "Import complete: {added} added, {updated} updated, {skipped} skipped",
   "history.importFailed": "Failed to import watch history",
   "history.importFileTooLarge": "Import file too large" 
 }

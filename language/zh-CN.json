@@ -121,7 +121,7 @@
   "history.readFailed": "读取历史记录失败",
   "history.importHistory": "导入观看历史",
   "history.exportHistory": "导出观看历史",
-  "history.importSuccess": "观看历史导入成功",
+  "history.importSuccess": "导入完成：新增 {added} 条，更新 {updated} 条，跳过 {skipped} 条",
   "history.importFailed": "观看历史导入失败",
   "history.importFileTooLarge": "导入的文件太大"
 }

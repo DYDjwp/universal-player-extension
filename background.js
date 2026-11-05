@@ -240,6 +240,7 @@ const MESSAGE_TYPES = Object.freeze({
   HISTORY_GET_FOR_URL: "VPR_HISTORY_GET_FOR_URL",
   HISTORY_LIST: "VPR_HISTORY_LIST",
   HISTORY_UPSERT: "VPR_HISTORY_UPSERT",
+  HISTORY_IMPORT: "VPR_HISTORY_IMPORT",
   HISTORY_DELETE: "VPR_HISTORY_DELETE",
   HISTORY_CLEAR: "VPR_HISTORY_CLEAR",
   STORAGE_STATUS: "VPR_STORAGE_STATUS"
@@ -259,6 +260,7 @@ let watchHistoryMutationChain = Promise.resolve();
 function normalizeHistoryUrl(urlString) {
   try {
     const url = new URL(urlString);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return "";
     return `${url.origin}${url.pathname.replace(/\/$/, "") || "/"}`;
   } catch {
     return "";
@@ -294,7 +296,9 @@ function normalizeWatchHistoryItem(rawItem) {
     completed,
     title: typeof rawItem.title === "string" ? rawItem.title.trim() : "",
     episodeName: typeof rawItem.episodeName === "string" ? rawItem.episodeName.trim() : "",
-    episodeIndex: Number.isFinite(Number(rawItem.episodeIndex)) ? Number(rawItem.episodeIndex) : null,
+    episodeIndex: rawItem.episodeIndex == null || rawItem.episodeIndex === ""
+      ? null
+      : (Number.isFinite(Number(rawItem.episodeIndex)) ? Number(rawItem.episodeIndex) : null),
     cover: typeof rawItem.cover === "string" ? rawItem.cover.trim() : "",
     updatedAt: Number.isFinite(Number(rawItem.updatedAt)) ? Number(rawItem.updatedAt) : Date.now()
   };
@@ -313,9 +317,7 @@ async function getWatchHistory() {
   }
 
   const items = [...byUrl.values()].sort((a, b) => b.updatedAt - a.updatedAt);
-  if (JSON.stringify(items) !== JSON.stringify(rawItems)) {
-    await browser.storage.local.set({ [WATCH_HISTORY_KEY]: items });
-  }
+  // A read must not rewrite storage while another history mutation is in progress.
   return items;
 }
 
@@ -325,7 +327,7 @@ function mutateWatchHistory(mutator) {
     .then(async () => {
       const items = await getWatchHistory();
       const updated = await mutator(items.map(item => ({ ...item })));
-      await browser.storage.local.set({ [WATCH_HISTORY_KEY]: updated });
+      if (updated !== null) await browser.storage.local.set({ [WATCH_HISTORY_KEY]: updated });
       return updated;
     });
   watchHistoryMutationChain = operation;
@@ -333,8 +335,20 @@ function mutateWatchHistory(mutator) {
 }
 
 async function getStorageStatus() {
-  const bytesInUse = await browser.storage.local.getBytesInUse(null);
-  const quotaBytes = Number(browser.storage.local.QUOTA_BYTES) || DEFAULT_STORAGE_QUOTA;
+  const local = browser.storage.local;
+  let bytesInUse = NaN;
+  try {
+    if (typeof local.getBytesInUse === "function") {
+      bytesInUse = Number(await local.getBytesInUse(null));
+    }
+  } catch {
+    // Firefox before 144 does not support getBytesInUse for storage.local.
+  }
+  if (!Number.isFinite(bytesInUse)) {
+    const values = await local.get(null);
+    bytesInUse = new TextEncoder().encode(JSON.stringify(values)).byteLength;
+  }
+  const quotaBytes = Number(local.QUOTA_BYTES) || DEFAULT_STORAGE_QUOTA;
   const ratio = quotaBytes > 0 ? bytesInUse / quotaBytes : 0;
   return {
     bytesInUse,
@@ -350,13 +364,15 @@ async function upsertWatchHistory(rawItem, preserveUpdatedAt = false) {
   const normalized = normalizeWatchHistoryItem(rawItem);
   if (!normalized) throw new Error("历史记录 URL 无效");
 
-  const settings = await browser.storage.local.get({ historyEnabled: true });
-  if (!settings.historyEnabled) {
-    return { saved: false, disabled: true, item: null, storage: await getStorageStatus() };
-  }
-
   let savedItem = null;
-  await mutateWatchHistory(items => {
+  let disabled = false;
+  await mutateWatchHistory(async items => {
+    // Check inside the queue to preserve event order relative to clear/import.
+    const settings = await browser.storage.local.get({ historyEnabled: true });
+    if (!settings.historyEnabled) {
+      disabled = true;
+      return null;
+    }
     const existing = items.find(item => item.url === normalized.url) || null;
     savedItem = {
       ...(existing || {}),
@@ -366,14 +382,65 @@ async function upsertWatchHistory(rawItem, preserveUpdatedAt = false) {
       episodeIndex: normalized.episodeIndex ?? existing?.episodeIndex ?? null,
       cover: normalized.cover || existing?.cover || "",
       updatedAt: preserveUpdatedAt
-        ? (existing?.updatedAt || normalized.updatedAt)
+        ? (existing?.updatedAt ?? normalized.updatedAt)
         : Date.now()
     };
     return [savedItem, ...items.filter(item => item.url !== normalized.url)]
       .sort((a, b) => b.updatedAt - a.updatedAt);
   });
+  return { saved: !disabled, disabled, item: savedItem, storage: await getStorageStatus() };
+}
 
-  return { saved: true, disabled: false, item: savedItem, storage: await getStorageStatus() };
+const MAX_HISTORY_IMPORT_ITEMS = 20000;
+
+async function importWatchHistory(rawItems) {
+  if (!Array.isArray(rawItems) || rawItems.length > MAX_HISTORY_IMPORT_ITEMS) {
+    throw new Error("Invalid history backup size");
+  }
+
+  // Validate everything before touching persistent storage.
+  const incoming = new Map();
+  for (let index = 0; index < rawItems.length; index++) {
+    const raw = rawItems[index];
+    if (!raw || typeof raw !== "object" || Array.isArray(raw) ||
+        typeof raw.url !== "string" || !Number.isFinite(raw.updatedAt) ||
+        raw.updatedAt < 0) {
+      throw new Error(`Invalid history record at index ${index + 1}`);
+    }
+    const item = normalizeWatchHistoryItem(raw);
+    if (!item) throw new Error(`Invalid history record at index ${index + 1}`);
+    const previous = incoming.get(item.url);
+    if (!previous || item.updatedAt > previous.updatedAt) incoming.set(item.url, item);
+  }
+
+  const stats = { added: 0, updated: 0, skipped: rawItems.length - incoming.size };
+  if (!incoming.size) return stats;
+
+  // One serialized write instead of N full-array writes.
+  await mutateWatchHistory(items => {
+    const merged = new Map(items.map(item => [item.url, item]));
+    for (const item of incoming.values()) {
+      const existing = merged.get(item.url);
+      if (!existing) {
+        merged.set(item.url, item);
+        stats.added++;
+      } else if (item.updatedAt > existing.updatedAt) {
+        merged.set(item.url, {
+          ...existing,
+          ...item,
+          title: item.title || existing.title,
+          episodeName: item.episodeName || existing.episodeName,
+          episodeIndex: item.episodeIndex ?? existing.episodeIndex ?? null,
+          cover: item.cover || existing.cover
+        });
+        stats.updated++;
+      } else {
+        stats.skipped++;
+      }
+    }
+    return [...merged.values()].sort((a, b) => b.updatedAt - a.updatedAt);
+  });
+  return stats;
 }
 
 async function deleteWatchHistory(urlString) {
@@ -389,7 +456,7 @@ async function deleteWatchHistory(urlString) {
 }
 
 async function clearWatchHistory() {
-  await browser.storage.local.set({ [WATCH_HISTORY_KEY]: [] });
+  await mutateWatchHistory(() => []);
   return true;
 }
 
@@ -1256,6 +1323,13 @@ browser.runtime.onMessage.addListener(
     if (message.type === MESSAGE_TYPES.HISTORY_UPSERT) {
       upsertWatchHistory(message.item, Boolean(message.preserveUpdatedAt))
         .then(result => sendResponse({ ok: true, ...result }))
+        .catch(error => sendResponse({ ok: false, message: error?.message || String(error) }));
+      return true;
+    }
+
+    if (message.type === MESSAGE_TYPES.HISTORY_IMPORT) {
+      importWatchHistory(message.items)
+        .then(stats => sendResponse({ ok: true, ...stats }))
         .catch(error => sendResponse({ ok: false, message: error?.message || String(error) }));
       return true;
     }
