@@ -85,6 +85,7 @@ test('history is saved even if the optional catalog lookup never responds', asyn
     chrome: fakeApi, browser: fakeApi,
     canonicalizeWatchUrl: s => s,
     sourceUrl:'https://v.qq.com/x/cover/a/b.html',
+    HISTORY_MESSAGES: { GET:'VPR_HISTORY_GET_FOR_URL', UPSERT:'VPR_HISTORY_UPSERT' },
     siteId:'tencent',
     showResumePrompt() {},
     fetchCatalogMetadata() { return new Promise(() => {}); },
