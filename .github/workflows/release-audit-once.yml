@@ -1,0 +1,39 @@
+name: One-time 1.0.1 release lint
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/release-audit-once.yml
+permissions:
+  contents: read
+jobs:
+  firefox-addon-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 02cba91a2e37a3a518f1f57706e80c6575fc3ce6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Firefox Add-ons Validator
+        run: npx --yes web-ext@10.8.0 lint --source-dir . --self-hosted --output text
+      - name: Check all first-party JavaScript syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          find . -name '*.js' -not -path './player/libs/*' -print0 | xargs -0 -n1 node --check
+      - name: Verify referenced assets are present
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs = require('fs');
+          const m = JSON.parse(fs.readFileSync('manifest.json','utf8'));
+          for(const file of m.background.scripts){if(!fs.existsSync(file))throw Error('Missing background script: '+file);}
+          for(const file of ['player/index.html','player/player.js','player/hls-decoder.js','player/libs/hls.min.js','shared/console-clear-debug.js']){
+            if(!fs.existsSync(file))throw Error('Missing file: '+file);
+          }
+          if(m.browser_specific_settings.gecko.strict_min_version !== '128.0')throw Error('Firefox minimum version changed');
+          console.log('Firefox manifest and all key assets verified');
+          NODE
