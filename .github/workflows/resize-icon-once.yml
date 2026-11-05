@@ -1,0 +1,61 @@
+name: Generate 128px extension icons once
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/resize-icon-once.yml
+permissions:
+  contents: write
+jobs:
+  generate-icons:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          path: chrome
+          fetch-depth: 0
+      - uses: actions/checkout@v4
+        with:
+          ref: firefox
+          path: firefox
+          fetch-depth: 0
+      - name: Set up image toolkit
+        run: python3 -m pip install --disable-pip-version-check pillow
+      - name: Generate properly sized icons
+        shell: bash
+        run: |
+          set -euo pipefail
+          for branch in chrome firefox; do
+            python3 - "$branch" <<'PY'
+          import json, sys
+          from pathlib import Path
+          from PIL import Image
+          root=Path(sys.argv[1])
+          original=root/'assets/icon/icon.png'
+          target=root/'assets/icon/icon-128.png'
+          with Image.open(original) as image:
+              image.convert('RGBA').resize((128,128),Image.Resampling.LANCZOS).save(target,optimize=True)
+          with Image.open(target) as image:
+              assert image.size == (128,128)
+          manifest=root/'manifest.json'
+          data=json.loads(manifest.read_text(encoding='utf-8'))
+          assert data['version']=='1.0.1'
+          data['icons']['128']='assets/icon/icon-128.png'
+          manifest.write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          print(root, target.stat().st_size, 'bytes')
+          PY
+          done
+      - name: Commit icons on both browser branches
+        shell: bash
+        run: |
+          set -euo pipefail
+          for branch in main firefox; do
+            dir="$branch"
+            if [ "$branch" = "main" ]; then dir=chrome; fi
+            git -C "$dir" config user.name "github-actions[bot]"
+            git -C "$dir" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git -C "$dir" add manifest.json assets/icon/icon-128.png
+            git -C "$dir" commit -m "fix(assets): provide correctly sized 128px extension icon"
+            git -C "$dir" push origin "HEAD:$branch"
+          done
