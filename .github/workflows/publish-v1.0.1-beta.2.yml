@@ -91,6 +91,7 @@ jobs:
       - name: Publish GitHub prerelease
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: DYDjwp/universal-player-extension
         shell: bash
         run: |
           set -euo pipefail
