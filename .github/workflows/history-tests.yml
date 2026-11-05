@@ -1,0 +1,21 @@
+name: History regression tests
+on:
+  push:
+    branches: [main, firefox]
+  pull_request:
+    branches: [main, firefox]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check JavaScript syntax
+        run: |
+          node --check background.js
+          node --check history/history.js
+          node --check tests/watch-history.test.cjs
+      - name: Run history regression tests
+        run: node --test tests/watch-history.test.cjs
