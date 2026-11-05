@@ -19,10 +19,10 @@ jobs:
       - name: Firefox Add-ons Validator and warning inventory
         shell: bash
         run: |
-          npx --yes web-ext@10.8.0 lint --source-dir . --self-hosted --output json > audit.json
+          npx --yes web-ext@10.8.0 lint --source-dir . --self-hosted --output json > /tmp/web-ext-audit.json || true
           node - <<'NODE'
           const fs = require('fs');
-          const data = JSON.parse(fs.readFileSync('audit.json','utf8'));
+          const data = JSON.parse(fs.readFileSync('/tmp/web-ext-audit.json','utf8'));
           console.log(JSON.stringify({
             errors: data.errors?.map(x=>({code:x.code,file:x.file,line:x.line,message:x.message})),
             warnings: data.warnings?.map(x=>({code:x.code,file:x.file,line:x.line,message:x.message}))
