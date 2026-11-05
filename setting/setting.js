@@ -6,6 +6,7 @@
     autoReplace: document.getElementById("autoReplace"),
     autoChange: document.getElementById("autoChange"),
     historyEnabled: document.getElementById("historyEnabled"),
+    debugConsoleClear: document.getElementById("debugConsoleClear"),
     languageSwitch: document.getElementById("languageSwitch"),
     languageOptions: [...document.querySelectorAll(".language-option")],
     themeSwitch: document.getElementById("themeSwitch"),
@@ -63,12 +64,14 @@
       autoReplace: false,
       autoChange: false,
       historyEnabled: true,
+      debugConsoleClear: false,
       language: i18n.DEFAULT_LANG,
       theme: themeApi.DEFAULT_THEME
     });
     ui.autoReplace.checked = settings.autoReplace;
     ui.autoChange.checked = settings.autoChange;
     ui.historyEnabled.checked = settings.historyEnabled !== false;
+    ui.debugConsoleClear.checked = settings.debugConsoleClear === true;
     syncLanguageButtons(settings.language);
     syncThemeButtons(settings.theme);
     await refreshStorageStatus();
@@ -77,7 +80,8 @@
   for (const [element, key] of [
     [ui.autoReplace, "autoReplace"],
     [ui.autoChange, "autoChange"],
-    [ui.historyEnabled, "historyEnabled"]
+    [ui.historyEnabled, "historyEnabled"],
+    [ui.debugConsoleClear, "debugConsoleClear"]
   ]) {
     element.addEventListener("change", async () => {
       await chrome.storage.local.set({ [key]: element.checked });

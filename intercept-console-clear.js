@@ -34,8 +34,8 @@
     try {
       Object.defineProperty(currentConsole, "clear", {
         value: blockedClear,
-        writable: false,
-        configurable: false,
+        writable: true,
+        configurable: true,
         enumerable: true
       });
 

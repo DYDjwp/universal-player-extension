@@ -48,18 +48,5 @@
       ]
     }
   ],
-  "content_scripts": [
-    {
-      "matches": [
-        "<all_urls>"
-      ],
-      "js": [
-        "intercept-console-clear.js"
-      ],
-      "run_at": "document_start",
-      "world": "MAIN",
-      "all_frames": false
-    }
-  ],
   "options_page": "setting/index.html"
 }

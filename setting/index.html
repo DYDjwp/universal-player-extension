@@ -85,6 +85,23 @@
     </section>
 
     <section class="settings-card">
+      <div class="section-heading">
+        <div>
+          <h2 data-i18n="settings.developerTools">开发者选项</h2>
+          <p data-i18n="settings.developerToolsDesc">仅用于排查播放器问题；普通用户无需开启。</p>
+        </div>
+      </div>
+      <label class="setting-row" for="debugConsoleClear">
+        <span>
+          <strong data-i18n="settings.debugConsoleClear">拦截网页 console.clear()</strong>
+          <small data-i18n="settings.debugConsoleClearDesc">默认关闭。开启后记录网页清空控制台的调用和堆栈；切换后请刷新网页。</small>
+        </span>
+        <input type="checkbox" id="debugConsoleClear">
+        <span class="switch" aria-hidden="true"></span>
+      </label>
+    </section>
+
+    <section class="settings-card">
       <div class="section-heading storage-heading">
         <div>
           <h2 data-i18n="settings.storageHeading">历史与存储</h2>

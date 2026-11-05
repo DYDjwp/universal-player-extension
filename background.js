@@ -9,7 +9,8 @@
  */
 importScripts(
   "shared/site-registry.js",
-  "initial.js"
+  "initial.js",
+  "shared/console-clear-debug.js"
 );
 
 /* =========================================================
