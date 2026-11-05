@@ -8,7 +8,8 @@
   const SETTING_KEY = "debugConsoleClear";
   const SCRIPT = {
     id: SCRIPT_ID,
-    matches: ["<all_urls>"],
+    // The manifest grants HTTPS host access; do not register on other schemes.
+    matches: ["https://*/*"],
     js: ["intercept-console-clear.js"],
     runAt: "document_start",
     world: "MAIN",

@@ -4,7 +4,7 @@
 
 **Universal Player — a custom player extension for multiple online video platforms (Please check the Firefox branch for the Firefox version.)**
 
-[![Version](https://img.shields.io/badge/version-1.0.0-2ea44f.svg)](#)
+[![Version](https://img.shields.io/badge/version-1.0.1-2ea44f.svg)](#)
 [![Manifest](https://img.shields.io/badge/Chrome-Manifest%20V3-4285F4.svg)](#)
 [![License](https://img.shields.io/badge/license-GPL--3.0--or--later-blue.svg)](LICENSE)
 

@@ -1446,9 +1446,10 @@
       showResumePrompt(video, existingResponse?.item || null);
     }
 
-    const metadataPromise = fetchCatalogMetadata(canonicalUrl).then(metadata => {
+    // Metadata is optional: a slow third-party catalog must never block
+    // progress updates or the initial playback pipeline.
+    void fetchCatalogMetadata(canonicalUrl).then(metadata => {
       catalogMetadata = metadata;
-      return metadata;
     });
 
     const save = (force = false, completed = false) => {
@@ -1466,7 +1467,6 @@
       lastSavedAt = now;
       lastSavedProgress = progress;
       saving = saving.catch(() => undefined).then(async () => {
-        await metadataPromise.catch(() => null);
         let response;
 
         try {
@@ -1671,7 +1671,7 @@
     window.addEventListener("pagehide", cleanup, { once: true });
 
     globalThis.UniversalPlayer = Object.freeze({
-      version: "1.0.0",
+      version: "1.0.1",
       app,
       siteId,
       sourceUrl,
