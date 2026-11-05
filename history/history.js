@@ -70,7 +70,7 @@
 
     setTimeout(() => {
       URL.revokeObjectURL(url);
-    }, 1000);
+    }, 60000);
   }
 
   async function fetchMetadata(item) {
@@ -253,30 +253,36 @@
 
   document.getElementById("importHistoryDatas").addEventListener("change", async event => {
     const input = event.target;
-    if (!input.files?.length) return;
+    if (!input.files?.length || input.disabled) return;
     const file = input.files[0];
+    input.disabled = true;
     try {
       if (file.size > 10 * 1024 * 1024) {
         throw new Error(i18n.t("history.importFileTooLarge"));
       }
-      const text = await file.text();
-      const data = JSON.parse(text);
-      let result = [];
-      if (data?.format !== "universal-player-history" || data?.schemaVersion !== 1 || !Array.isArray(data.items)) {
+      const data = JSON.parse(await file.text());
+      if (data?.format !== "universal-player-history" ||
+          data.schemaVersion !== 1 || !Array.isArray(data.items)) {
         throw new Error(i18n.t("history.importFailed"));
       }
-      for (const item of data.items) {
-        result = await chrome.runtime.sendMessage({ type: "VPR_HISTORY_UPSERT", item, preserveUpdatedAt: true });
+      const response = await chrome.runtime.sendMessage({
+        type: "VPR_HISTORY_IMPORT",
+        items: data.items
+      });
+      if (!response?.ok) {
+        throw new Error(response?.message || i18n.t("history.importFailed"));
       }
-      if (!result?.ok) {
-        throw new Error(result?.message || i18n.t("history.importFailed"));
-      }
-      await load();
-      alert(i18n.t("history.importSuccess", { count: data.items.length }));
+      await load(false);
+      alert(i18n.t("history.importSuccess", {
+        added: response.added,
+        updated: response.updated,
+        skipped: response.skipped
+      }));
     } catch (error) {
       alert(error?.message || String(error));
     } finally {
       input.value = "";
+      input.disabled = false;
     }
   });
 
