@@ -4,7 +4,7 @@
   "version": "1.0.1",
   "description": "支持多平台播放页替换；使用本地 Media Chrome 自定义控制栏，集成平台弹幕、独立弹幕发送、HLS 解包、倍速和观看历史。",
   "icons": {
-    "128": "assets/icon/icon.png"
+    "128": "assets/icon/icon-128.png"
   },
   "browser_specific_settings": {
     "gecko": {
