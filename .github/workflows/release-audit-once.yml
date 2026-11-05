@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 02cba91a2e37a3a518f1f57706e80c6575fc3ce6
+          ref: 9a85d6d0db211ec01b8fadab2c0202c06ee9c43b
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -23,6 +23,7 @@ jobs:
           node - <<'NODE'
           const fs = require('fs');
           const data = JSON.parse(fs.readFileSync('/tmp/web-ext-audit.json','utf8'));
+          if (data.errors?.length) process.exitCode = 1;
           console.log(JSON.stringify({
             errors: data.errors?.map(x=>({code:x.code,file:x.file,line:x.line,message:x.message})),
             warnings: data.warnings?.map(x=>({code:x.code,file:x.file,line:x.line,message:x.message}))
