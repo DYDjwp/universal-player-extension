@@ -1,4 +1,4 @@
-name: Publish Universal Player v1.0.1-beta.2
+name: Refresh existing Universal Player v1.0.1-beta
 
 on:
   push:
@@ -64,7 +64,7 @@ jobs:
         shell: bash
         run: |
           cat > RELEASE_NOTES.md <<'EOF'
-          ## Universal Player v1.0.1-beta.2 — Watch History Fix
+          ## Universal Player v1.0.1-beta — Watch History Fix
 
           Beta patch release for **Chrome** and **Firefox**. The extension manifest stays at `1.0.1`; the user-facing beta label stays `v1.0.1-beta`.
 
@@ -88,18 +88,36 @@ jobs:
           **Source commits:** Chrome `b881d6a46d9c9d06b39a5f9a78efa948ce4bcb89`; Firefox `f2ffe4f9ec8e19a22793039125a3b035f626741c`.
           EOF
 
-      - name: Publish GitHub prerelease
+      - name: Overwrite original prerelease assets and notes
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: DYDjwp/universal-player-extension
         shell: bash
         run: |
           set -euo pipefail
-          gh release create 1.0.1-beta.2 \
+          gh release view 1.0.1 --json name,isPrerelease | tee original-release.json
+          gh release upload 1.0.1 \
             artifacts/universal-player-chrome-beta.zip \
             artifacts/universal-player-firefox-beta.zip \
-            artifacts/SHA256SUMS.txt \
-            --title 'v1.0.1-beta.2 (history fixes)' \
+            artifacts/SHA256SUMS.txt --clobber
+          gh release edit 1.0.1 \
+            --title 'v1.0.1-beta' \
             --notes-file RELEASE_NOTES.md \
-            --prerelease \
-            --target "${GITHUB_SHA}"
+            --prerelease
+          for file in universal-player-chrome-beta.zip universal-player-firefox-beta.zip SHA256SUMS.txt; do
+            local_digest="$(sha256sum "artifacts/$file" | awk '{print $1}')"
+            remote_digest="$(gh api "repos/$GH_REPO/releases/tags/1.0.1" --jq ".assets[] | select(.name == \"$file\") | .digest")"
+            if [ "$remote_digest" != "sha256:$local_digest" ]; then
+              echo "Published asset verification failed: $file ($remote_digest)" >&2
+              exit 1
+            fi
+          done
+
+      - name: Remove mistakenly created duplicate beta release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: DYDjwp/universal-player-extension
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release delete 1.0.1-beta.2 --yes --cleanup-tag
