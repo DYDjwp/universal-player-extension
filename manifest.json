@@ -16,7 +16,6 @@
     "activeTab",
     "scripting",
     "declarativeNetRequest",
-    "declarativeNetRequestFeedback",
     "storage",
     "tabs"
   ],

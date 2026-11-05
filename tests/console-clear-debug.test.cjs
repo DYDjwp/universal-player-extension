@@ -71,6 +71,7 @@ for (const browserName of ['chrome', 'firefox']) {
     assert.equal(env.scripts.size, 1);
     const item = env.scripts.get('vpr-console-clear-debug');
     assert.equal(item.world, 'MAIN');
+    assert.deepEqual([...item.matches], ['https://*/*']);
     assert.equal(item.runAt, 'document_start');
     assert.equal(item.allFrames, false);
     assert.deepEqual([...item.js], ['intercept-console-clear.js']);
@@ -136,4 +137,8 @@ test('settings checkbox exists and is explicitly false by default', () => {
   assert.match(html, /id="debugConsoleClear"/);
   assert.match(js, /debugConsoleClear: false/);
   assert.match(js, /\[ui\.debugConsoleClear, "debugConsoleClear"\]/);
+});
+
+test('production build excludes the development-only DNR feedback permission', () => {
+  assert.ok(!manifest.permissions.includes('declarativeNetRequestFeedback'));
 });

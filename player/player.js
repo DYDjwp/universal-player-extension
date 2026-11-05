@@ -1468,12 +1468,13 @@
   }
 
   function sendHistoryMessageOnce(message, timeoutMs = 4500) {
-    return new Promise((resolve, reject) => {
-      if (!globalThis.browser?.runtime?.sendMessage) {
-        reject(new Error("扩展消息接口不可用"));
-        return;
-      }
+    // Firefox's browser.runtime.sendMessage is Promise-based. Passing a
+    // callback as its second argument is not supported by the browser API.
+    if (!globalThis.browser?.runtime?.sendMessage) {
+      return Promise.reject(new Error("扩展消息接口不可用"));
+    }
 
+    return new Promise((resolve, reject) => {
       let settled = false;
       const timer = setTimeout(() => {
         if (settled) return;
@@ -1481,34 +1482,29 @@
         reject(new Error("观看历史后台响应超时"));
       }, timeoutMs);
 
-      const finish = callback => value => {
+      const resolveOnce = value => {
         if (settled) return;
         settled = true;
         clearTimeout(timer);
-        callback(value);
+        resolve(value);
+      };
+      const rejectOnce = error => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        reject(error instanceof Error ? error : new Error(String(error)));
       };
 
-      const resolveOnce = finish(resolve);
-      const rejectOnce = finish(reject);
-
       try {
-        browser.runtime.sendMessage(message, response => {
-          const runtimeError = browser.runtime.lastError;
-
-          if (runtimeError) {
-            rejectOnce(new Error(runtimeError.message || "扩展后台通信失败"));
-            return;
-          }
-
+        Promise.resolve(browser.runtime.sendMessage(message)).then(response => {
           if (typeof response === "undefined") {
             rejectOnce(new Error("扩展后台没有返回观看历史响应"));
             return;
           }
-
           resolveOnce(response);
-        });
+        }, rejectOnce);
       } catch (error) {
-        rejectOnce(error instanceof Error ? error : new Error(String(error)));
+        rejectOnce(error);
       }
     });
   }
@@ -1640,9 +1636,10 @@
       showResumePrompt(video, existingResponse?.item || null);
     }
 
-    const metadataPromise = fetchCatalogMetadata(canonicalUrl).then(metadata => {
+    // Metadata is optional: a slow third-party catalog must never block
+    // progress updates or the initial playback pipeline.
+    void fetchCatalogMetadata(canonicalUrl).then(metadata => {
       catalogMetadata = metadata;
-      return metadata;
     });
 
     const save = (force = false, completed = false) => {
@@ -1660,7 +1657,6 @@
       lastSavedAt = now;
       lastSavedProgress = progress;
       saving = saving.catch(() => undefined).then(async () => {
-        await metadataPromise.catch(() => null);
         let response;
 
         try {

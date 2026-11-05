@@ -114,12 +114,29 @@ test('storage usage fallback works without getBytesInUse on old Firefox', async 
   assert.ok(Number.isFinite(status.percent));
 });
 
-test('version label is allowed to be beta while manifest version is numeric', () => {
+test('stable label matches numeric manifest version', () => {
   const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, '../manifest.json'), 'utf8'));
   assert.equal(manifest.version, '1.0.1');
   const languages = ['en.json', 'zh-CN.json'];
   for (const file of languages) {
     const data = JSON.parse(fs.readFileSync(path.join(__dirname, '../language', file), 'utf8'));
-    assert.equal(data['app.version'], file === 'en.json' ? 'v1.0.1-beta' : 'v1.0.1-beta');
+    assert.equal(data['app.version'], file === 'en.json' ? 'v1.0.1' : 'v1.0.1');
   }
+});
+
+test('metadata-only updates cannot resurrect records after deletion', async () => {
+  const env = setup();
+  const missing = await env.api.upsertWatchHistory({...record('deleted'), title: 'metadata'}, true);
+  assert.equal(missing.saved, false);
+  assert.equal((await env.api.getWatchHistory()).length, 0);
+
+  await env.api.upsertWatchHistory(record('existing'));
+  const existing = await env.api.getWatchHistory();
+  const priorTimestamp = existing[0].updatedAt;
+  const updated = await env.api.upsertWatchHistory({...record('existing'), title: 'new metadata'}, true);
+  assert.equal(updated.saved, true);
+  const items = await env.api.getWatchHistory();
+  assert.equal(items.length, 1);
+  assert.equal(items[0].title, 'new metadata');
+  assert.equal(items[0].updatedAt, priorTimestamp);
 });

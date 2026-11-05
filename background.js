@@ -374,6 +374,8 @@ async function upsertWatchHistory(rawItem, preserveUpdatedAt = false) {
       return null;
     }
     const existing = items.find(item => item.url === normalized.url) || null;
+    // Metadata hydration must never recreate an episode that was just deleted.
+    if (preserveUpdatedAt && !existing) return null;
     savedItem = {
       ...(existing || {}),
       ...normalized,
@@ -388,7 +390,7 @@ async function upsertWatchHistory(rawItem, preserveUpdatedAt = false) {
     return [savedItem, ...items.filter(item => item.url !== normalized.url)]
       .sort((a, b) => b.updatedAt - a.updatedAt);
   });
-  return { saved: !disabled, disabled, item: savedItem, storage: await getStorageStatus() };
+  return { saved: !disabled && savedItem !== null, disabled, item: savedItem, storage: await getStorageStatus() };
 }
 
 const MAX_HISTORY_IMPORT_ITEMS = 20000;
@@ -574,26 +576,6 @@ browser.runtime.onStartup.addListener(() => {
     );
   });
 });
-
-/*
- * onRuleMatchedDebug 只用于开发调试。
- */
-if (
-  browser.declarativeNetRequest
-    ?.onRuleMatchedDebug
-) {
-  browser.declarativeNetRequest
-    .onRuleMatchedDebug
-    .addListener(info => {
-      console.log("DNR 规则命中：", {
-        ruleId: info.rule.ruleId,
-        url: info.request.url,
-        method: info.request.method,
-        initiator: info.request.initiator,
-        resourceType: info.request.type
-      });
-    });
-}
 
 /* =========================================================
  * 当前网页识别

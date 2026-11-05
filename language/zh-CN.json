@@ -1,7 +1,7 @@
 {
   "app.name": "通用播放器",
   "app.brand": "UNIVERSAL PLAYER",
-  "app.version": "v1.0.1-beta",
+  "app.version": "v1.0.1",
 
   "settings.documentTitle": "通用播放器设置",
   "settings.heading": "播放器设置",
